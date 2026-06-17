@@ -3451,7 +3451,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     </label>
                 </div>
 
-                <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
+                <button type="submit" onclick="if(this.form.checkValidity()) { setTimeout(() => { this.disabled=true; this.innerHTML='Publishing...'; }, 0); } else { this.form.reportValidity(); return false; }" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
                     Publish System Asset
                 </button>
             </form>
