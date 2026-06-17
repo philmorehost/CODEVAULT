@@ -304,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $gd_converted = false;
         $final_path = '';
 
-        if (function_exists('imagewebp') && $mime_type !== 'image/svg+xml') {
+        if (function_exists('imagewebp') && $mime_type !== 'image/svg+xml' && $mime_type !== 'image/webp') {
             $src_img = null;
             if ($mime_type === 'image/jpeg' || $mime_type === 'image/jpg') {
                 $src_img = imagecreatefromjpeg($temp_path);
@@ -329,6 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 if ($webp_size < $original_size) {
                     $final_path = $upload_dir . $final_name . '.webp';
                     rename($webp_temp, $final_path);
+                    chmod($final_path, 0644);
                     $target_extension = 'webp';
                     $gd_converted = true;
                 } else {
@@ -3510,13 +3511,13 @@ if ($page === 'product' && isset($_GET['id'])) {
         }
 
         // Auto-show reset form if forgot success is in URL parameters
-        window.addEventListener('DOMContentLoaded', () => {
+        (function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('forgot_success') && urlParams.has('email')) {
                 openLoginModal();
                 toggleAuthTab('reset');
             }
-        });
+        })();
 
         function toggleCartDrawer() {
             const cart_drawer = document.getElementById('shopping-cart-drawer');
@@ -3689,7 +3690,7 @@ if ($page === 'product' && isset($_GET['id'])) {
         }
 
         // WebP auto-conversion pipeline with Canvas size check
-        function convertToWebP(file, quality = 0.85) {
+        function convertToWebP(file, quality = 0.80) {
             return new Promise((resolve) => {
                 if (!window.FileReader || !window.HTMLCanvasElement) {
                     resolve({ blob: file, name: file.name, ext: file.name.split('.').pop() });
@@ -3704,10 +3705,22 @@ if ($page === 'product' && isset($_GET['id'])) {
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
+                        let width = img.naturalWidth;
+                        let height = img.naturalHeight;
+                        const MAX_DIMENSION = 1280;
+                        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                            if (width > height) {
+                                height = Math.round(height * (MAX_DIMENSION / width));
+                                width = MAX_DIMENSION;
+                            } else {
+                                width = Math.round(width * (MAX_DIMENSION / height));
+                                height = MAX_DIMENSION;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
+                        ctx.drawImage(img, 0, 0, width, height);
                         canvas.toBlob((webpBlob) => {
                             if (webpBlob && webpBlob.size < file.size) {
                                 const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
