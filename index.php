@@ -49,7 +49,7 @@ if (!empty($clean_route) && $clean_route !== 'index.php') {
     $parts = explode('/', $clean_route);
     if (count($parts) > 0) {
         $clean_page = $parts[0];
-        
+
         $route_mappings = [
             'marketplace' => 'marketplace',
             'product' => 'product',
@@ -67,7 +67,7 @@ if (!empty($clean_route) && $clean_route !== 'index.php') {
             'help' => 'help_center',
             'help_center' => 'help_center',
         ];
-        
+
         if (isset($route_mappings[$clean_page])) {
             $_GET['page'] = $route_mappings[$clean_page];
             if (isset($parts[1])) {
@@ -92,7 +92,7 @@ $page = isset($_GET['page']) ? trim($_GET['page']) : 'marketplace';
 // Dynamic XML Sitemap Generator
 if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
     header('Content-Type: application/xml; charset=utf-8');
-    
+
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['SERVER_PORT'] == 443);
     $protocol = $is_https ? 'https' : 'http';
@@ -101,10 +101,10 @@ if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
     $base_dir = str_replace('\\', '/', $base_dir);
     $base_path = ($base_dir === '/' || $base_dir === '\\') ? '' : $base_dir;
     $site_url = $protocol . '://' . $host . $base_path;
-    
+
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-    
+
     // Base static pages
     $pages = ['', 'marketplace', 'collections', 'flash-sale', 'free-files', 'affiliate', 'blog'];
     foreach ($pages as $p) {
@@ -118,7 +118,7 @@ if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
         echo '    <priority>' . (empty($p) ? '1.0' : '0.8') . '</priority>' . "\n";
         echo '  </url>' . "\n";
     }
-    
+
     // Approved products
     $prod_stmt = $db->query("SELECT id, slug, created_at FROM products WHERE status = 'approved' ORDER BY id DESC");
     while ($p_row = $prod_stmt->fetch()) {
@@ -134,7 +134,7 @@ if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
         echo '    <priority>0.7</priority>' . "\n";
         echo '  </url>' . "\n";
     }
-    
+
     // Blog articles
     $blog_stmt = $db->query("SELECT id, created_at FROM blog_posts ORDER BY id DESC");
     while ($b_row = $blog_stmt->fetch()) {
@@ -147,7 +147,7 @@ if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
         echo '    <priority>0.6</priority>' . "\n";
         echo '  </url>' . "\n";
     }
-    
+
     echo '</urlset>' . "\n";
     exit;
 }
@@ -155,7 +155,7 @@ if ($clean_route === 'sitemap.xml' || $action === 'sitemap') {
 // Dynamic robots.txt Generator
 if ($clean_route === 'robots.txt' || $action === 'robots') {
     header('Content-Type: text/plain; charset=utf-8');
-    
+
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['SERVER_PORT'] == 443);
     $protocol = $is_https ? 'https' : 'http';
@@ -164,12 +164,12 @@ if ($clean_route === 'robots.txt' || $action === 'robots') {
     $base_dir = str_replace('\\', '/', $base_dir);
     $base_path = ($base_dir === '/' || $base_dir === '\\') ? '' : $base_dir;
     $site_url = $protocol . '://' . $host . $base_path;
-    
+
     $sitemap_url = $site_url . '/sitemap.xml';
     if (get_setting('clean_urls', '1') === '0') {
         $sitemap_url = $site_url . '/index.php?action=sitemap';
     }
-    
+
     echo "User-agent: *\n";
     echo "Disallow: /admin/\n";
     echo "Disallow: /index.php?page=dashboard\n";
@@ -189,13 +189,13 @@ if ($clean_route === 'ads.txt' || $action === 'ads') {
 // Dynamic Favicon Generator (SVG)
 if ($clean_route === 'favicon.ico' || $clean_route === 'favicon.svg' || $action === 'favicon') {
     header('Content-Type: image/svg+xml');
-    
+
     $site_name = get_platform_name();
     $first_letter = mb_strtoupper(mb_substr($site_name, 0, 1));
     if (empty($first_letter)) {
         $first_letter = 'C';
     }
-    
+
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     ?>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
@@ -225,7 +225,7 @@ if (isset($_GET['ref'])) {
 
 // ---------------- ACTION LISTENERS (POSTS INTERCEPTOR) ----------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
-    
+
     // AJAX Image Upload & Auto-WebP Optimization
     if ($action === 'image_upload_ajax') {
         header('Content-Type: application/json');
@@ -246,14 +246,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $file = $_FILES['file'];
         $temp_path = $file['tmp_name'];
         $file_name = basename($file['name']);
-        
+
         // Mime validation
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime_type = finfo_file($finfo, $temp_path);
         finfo_close($finfo);
 
         $allowed_mimes = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
             'image/webp', 'image/svg+xml', 'image/bmp'
         ];
 
@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
 
         $title_param = isset($_POST['title']) ? trim($_POST['title']) : '';
         $type_param = isset($_POST['type']) ? trim($_POST['type']) : 'screenshot'; // thumb vs screenshot
-        
+
         $base_name = 'product-asset';
         if (!empty($title_param)) {
             $slug = preg_replace('~[^\pL\d]+~u', '-', $title_param);
@@ -298,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
 
         $uniq_suffix = substr(md5(uniqid(microtime(), true)), 0, 8);
         $target_extension = 'webp';
-        
+
         $final_name = $base_name . '-' . $type_param . '-' . $uniq_suffix;
         $original_size = filesize($temp_path);
         $gd_converted = false;
@@ -317,14 +317,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             } elseif ($mime_type === 'image/webp') {
                 $src_img = imagecreatefromwebp($temp_path);
             }
-            
+
             if ($src_img) {
                 $webp_temp = tempnam(sys_get_temp_dir(), 'webp');
                 imagewebp($src_img, $webp_temp, 85);
                 imagedestroy($src_img);
-                
+
                 $webp_size = filesize($webp_temp);
-                
+
                 // Compare sizes and keep the smaller one
                 if ($webp_size < $original_size) {
                     $final_path = $upload_dir . $final_name . '.webp';
@@ -337,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 }
             }
         }
-        
+
         if (!$gd_converted) {
             $orig_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
             if (!in_array($orig_ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
@@ -351,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         // Return public relative path
         $public_url = 'uploads/' . basename($final_path);
         echo json_encode([
-            'status' => 'success', 
+            'status' => 'success',
             'url' => $public_url,
             'original_size' => $original_size,
             'final_size' => filesize($final_path),
@@ -364,11 +364,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
     if ($action === 'login') {
         $email = isset($_POST['email']) ? trim($_POST['email']) : '';
         $pass = isset($_POST['pass']) ? trim($_POST['pass']) : '';
-        
+
         $stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user_row = $stmt->fetch();
-        
+
         if ($user_row && password_verify($pass, $user_row['password'])) {
             $_SESSION['user_id'] = $user_row['id'];
             $_SESSION['user_name'] = $user_row['name'];
@@ -397,7 +397,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         if ($user_row) {
             $otp = strval(rand(100000, 999999));
             $expiry = date('Y-m-d H:i:s', time() + 900); // 15 minutes
-            
+
             $up_otp = $db->prepare("UPDATE users SET reset_otp = ?, reset_otp_expires_at = ? WHERE id = ?");
             $up_otp->execute([$otp, $expiry, $user_row['id']]);
 
@@ -463,14 +463,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         header("Location: index.php?page=" . urlencode($page) . "&forgot_success=1&email=" . urlencode($email));
         exit;
     }
-    
+
     // Auth: Register
     if ($action === 'register') {
         $name = isset($_POST['name']) ? trim($_POST['name']) : '';
         $email = isset($_POST['email']) ? trim($_POST['email']) : '';
         $pass = isset($_POST['pass']) ? trim($_POST['pass']) : '';
         $role = isset($_POST['role']) ? trim($_POST['role']) : ''; // 'buyer', 'seller'
-        
+
         if (empty($name) || empty($email) || empty($pass)) {
             $_SESSION['flash_error'] = "All registration fields are required.";
         } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -483,29 +483,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $_SESSION['flash_error'] = "This email is already registered.";
             } else {
                 $hash = password_hash($pass, PASSWORD_BCRYPT, ['cost' => 10]);
-                
+
                 // Referral link check
                 $referred_by = isset($_COOKIE['ref_by']) ? intval($_COOKIE['ref_by']) : null;
-                
+
                 $ins = $db->prepare("INSERT INTO users (name, email, password, role, referred_by) VALUES (?, ?, ?, ?, ?)");
                 $ins->execute([$name, $email, $hash, $role, $referred_by]);
                 $new_id = $db->lastInsertId();
-                
+
                 // Initialize wallet
                 $db->prepare("INSERT INTO wallets (user_id, balance, pending_balance) VALUES (?, 0.0, 0.0)")->execute([$new_id]);
-                
+
                 // Add affiliate attribution record if referred_by is logged
                 if ($referred_by) {
                     $db->prepare("INSERT INTO affiliate_referrals (referrer_id, referred_id, amount) VALUES (?, ?, 0.0)")->execute([$referred_by, $new_id]);
                     // Clear cookie
                     setcookie('ref_by', '', time() - 3600, '/');
                 }
-                
+
                 $_SESSION['user_id'] = $new_id;
                 $_SESSION['user_name'] = $name;
                 $_SESSION['user_role'] = $role;
                 $_SESSION['flash_success'] = "Account successfully created!";
-                
+
                 // Welcome email
                 $site_name = get_platform_name();
                 $subject = "Welcome to " . $site_name . "!";
@@ -525,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         header("Location: index.php?page=" . urlencode($page));
         exit;
     }
-    
+
     // Auth: Logout
     if ($action === 'logout') {
         unset($_SESSION['user_id']);
@@ -575,12 +575,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         }
         $purchase_id = isset($_POST['purchase_id']) ? intval($_POST['purchase_id']) : 0;
         $buyer = get_logged_in_user();
-        
+
         // Fetch purchase record
         $purch_stmt = $db->prepare("SELECT pu.*, p.licensing_enabled, p.license_manager_url, p.license_manager_secret FROM purchases pu JOIN products p ON pu.product_id = p.id WHERE pu.id = ? AND pu.buyer_id = ?");
         $purch_stmt->execute([$purchase_id, $buyer['id']]);
         $purchase = $purch_stmt->fetch();
-        
+
         if ($purchase) {
             if (empty($purchase['license_key']) && !empty($purchase['licensing_enabled']) && intval($purchase['licensing_enabled']) === 1) {
                 $license_key = generate_product_license($purchase, $buyer['email'], $purchase['license_type'] ?? 'standard');
@@ -607,70 +607,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         $purchase_id = isset($_POST['purchase_id']) ? intval($_POST['purchase_id']) : 0;
         $buyer = get_logged_in_user();
-        
+
         // Fetch purchase record along with product licensing details
         $purch_stmt = $db->prepare("SELECT pu.*, p.licensing_enabled, p.license_manager_url, p.license_manager_secret, p.extended_price, p.seller_id, p.title FROM purchases pu JOIN products p ON pu.product_id = p.id WHERE pu.id = ? AND pu.buyer_id = ?");
         $purch_stmt->execute([$purchase_id, $buyer['id']]);
         $purchase = $purch_stmt->fetch();
-        
+
         if (!$purchase) {
             $_SESSION['flash_error'] = "Purchase record not found.";
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         if (empty($purchase['licensing_enabled']) || intval($purchase['licensing_enabled']) !== 1 || empty($purchase['license_key'])) {
             $_SESSION['flash_error'] = "This purchase is not eligible for upgrades (licensing inactive or key not generated).";
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         if (($purchase['license_type'] ?? 'standard') === 'extended') {
             $_SESSION['flash_error'] = "This purchase is already on the Extended License level.";
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         $extended_price = floatval($purchase['extended_price']);
         if ($extended_price <= 0) {
             $_SESSION['flash_error'] = "The seller has not configured an Extended License price for this product.";
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         $upgrade_cost = $extended_price - floatval($purchase['amount']);
         if ($upgrade_cost <= 0) {
             $_SESSION['flash_error'] = "Invalid upgrade cost configuration.";
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         // Fetch buyer's wallet
         $w_stmt = $db->prepare("SELECT * FROM wallets WHERE user_id = ?");
         $w_stmt->execute([$buyer['id']]);
         $buyer_wallet = $w_stmt->fetch();
         $buyer_balance = floatval($buyer_wallet['balance'] ?? 0.0);
-        
+
         if ($buyer_balance < $upgrade_cost) {
             $_SESSION['flash_error'] = sprintf("Insufficient wallet balance. Upgrade requires $%s, but you have $%s.", number_format($upgrade_cost, 2), number_format($buyer_balance, 2));
             header("Location: index.php?page=dashboard&tab=purchases");
             exit;
         }
-        
+
         try {
             $db->beginTransaction();
-            
+
             // Deduct from buyer
             $db->prepare("UPDATE wallets SET balance = balance - ? WHERE user_id = ?")
                ->execute([$upgrade_cost, $buyer['id']]);
-               
+
             // Settle seller wallet (commission + escrow hold)
             $comm_percent = defined('PLATFORM_COMMISSION') ? floatval(PLATFORM_COMMISSION) : 15.0;
             $seller_share = $upgrade_cost * ((100.0 - $comm_percent) / 100.0);
-            
+
             $escrow_days = intval(get_setting('escrow_lock_days', 7));
             if ($escrow_days > 0) {
                 $db->prepare("UPDATE wallets SET pending_balance = pending_balance + ? WHERE user_id = ?")
@@ -683,14 +683,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $status = 'completed';
                 $available_at = date('Y-m-d H:i:s');
             }
-            
+
             // Record seller transactions and notifications
             $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'sale', ?, ?, ?)")
                ->execute([$purchase['seller_id'], $seller_share, $status, 'pstk_upg_' . uniqid(), $available_at]);
-               
+
             $db->prepare("INSERT INTO notifications (user_id, type, product_id, message) VALUES (?, 'sale', ?, ?)")
                ->execute([$purchase['seller_id'], $purchase['product_id'], "License Upgrade! " . htmlspecialchars($buyer['name']) . " upgraded " . htmlspecialchars($purchase['title']) . " to Extended License."]);
-            
+
             // Call License Manager Upgrade API
             $api_url = rtrim($purchase['license_manager_url'], '/') . '/api-upgrade-license.php';
             $ch = curl_init();
@@ -702,28 +702,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             ]));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            
+
             $response = curl_exec($ch);
             $curl_error = curl_error($ch);
             curl_close($ch);
-            
+
             if ($curl_error) {
                 throw new Exception("License Manager connection timeout: " . $curl_error);
             }
-            
+
             $api_res = json_decode($response, true);
             if (!$api_res || !isset($api_res['success']) || !$api_res['success']) {
                 $err_msg = $api_res['message'] ?? 'Unknown error';
                 throw new Exception("License Manager API rejected request: " . $err_msg);
             }
-            
+
             // Update purchase record
             $db->prepare("UPDATE purchases SET license_type = 'extended', amount = amount + ? WHERE id = ?")
                ->execute([$upgrade_cost, $purchase_id]);
-               
+
             $db->commit();
             $_SESSION['flash_success'] = "Congratulations! Your license has been upgraded to Extended (Multi-domain).";
-            
+
         } catch (Exception $ex) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
@@ -731,7 +731,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             error_log("CodeVault Upgrade License Exception: " . $ex->getMessage());
             $_SESSION['flash_error'] = "Upgrade Failed: " . $ex->getMessage();
         }
-        
+
         header("Location: index.php?page=dashboard&tab=purchases");
         exit;
     }
@@ -743,16 +743,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php?page=" . urlencode($page));
             exit;
         }
-        
+
         $buyer = get_logged_in_user();
         if (empty($_SESSION['cart'])) {
             $_SESSION['flash_error'] = "Your cart is empty.";
             header("Location: index.php?page=marketplace");
             exit;
         }
-        
+
         $coupon = isset($_SESSION['applied_coupon']) ? $_SESSION['applied_coupon'] : null;
-        
+
         // Check if the buyer was referred and this is their first purchase
         $is_first_purchase = false;
         if (get_setting('affiliate_system', '1') === '1' && !empty($buyer['referred_by'])) {
@@ -762,11 +762,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $is_first_purchase = true;
             }
         }
-        
+
         // Loop over items to checkout and simulate purchase success
         try {
             $db->beginTransaction();
-            
+
             // Calculate total original price first
             $total_orig = 0.0;
             $p_rows = [];
@@ -781,7 +781,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $total_orig += $base_price;
                 }
             }
-            
+
             $final_total = $total_orig;
             if ($coupon) {
                 if ($coupon['type'] === 'percentage') {
@@ -794,16 +794,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 // Update coupon use count
                 $db->prepare("UPDATE coupon_codes SET uses_count = uses_count + 1 WHERE id = ?")->execute([$coupon['id']]);
             }
-            
+
             $ratio = $total_orig > 0 ? ($final_total / $total_orig) : 1;
-            
+
             foreach($p_rows as $p_row) {
                 $pid = $p_row['id'];
                 $item_license_type = $_SESSION['cart_licenses'][$pid] ?? 'standard';
                 $base_price = ($item_license_type === 'extended' && !empty($p_row['extended_price'])) ? floatval($p_row['extended_price']) : floatval($p_row['discount_price'] ?: $p_row['price']);
                 $item_price = $base_price * $ratio;
                 $seller_id = $p_row['seller_id'];
-                
+
                 // Create purchase record
                 $license_key = null;
                 if (!empty($p_row['licensing_enabled']) && intval($p_row['licensing_enabled']) === 1) {
@@ -812,11 +812,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
 
                 $db->prepare("INSERT INTO purchases (buyer_id, product_id, amount, license_key, license_type) VALUES (?, ?, ?, ?, ?)")
                    ->execute([$buyer['id'], $pid, $item_price, $license_key, $item_license_type]);
-                
+
                 // Settle seller wallet with dynamic escrow lock duration
                 $comm_percent = defined('PLATFORM_COMMISSION') ? floatval(PLATFORM_COMMISSION) : 15.0;
                 $seller_share = $item_price * ((100.0 - $comm_percent) / 100.0);
-                
+
                 $escrow_days = intval(get_setting('escrow_lock_days', 7));
                 if ($escrow_days > 0) {
                     $db->prepare("UPDATE wallets SET pending_balance = pending_balance + ? WHERE user_id = ?")
@@ -829,19 +829,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $status = 'completed';
                     $available_at = date('Y-m-d H:i:s');
                 }
-                
+
                 // Update product sales count
                 $db->prepare("UPDATE products SET sales_count = sales_count + 1 WHERE id = ?")
                    ->execute([$pid]);
-                
+
                 // Create transaction for seller
                 $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'sale', ?, ?, ?)")
                    ->execute([$seller_id, $seller_share, $status, 'pstk_' . uniqid(), $available_at]);
-                
+
                 // Notification log for seller
                 $db->prepare("INSERT INTO notifications (user_id, type, product_id, message) VALUES (?, 'sale', ?, ?)")
                    ->execute([$seller_id, $pid, "You made a sale! " . htmlspecialchars($buyer['name']) . " purchased " . htmlspecialchars($p_row['title'])]);
-                
+
                 // Check if this is the seller's first sale (referred seller first sale commission)
                 $is_seller_first_sale = false;
                 $vendor_stmt = $db->prepare("SELECT referred_by FROM users WHERE id = ?");
@@ -858,7 +858,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 // Affiliate Referral Commission processing (dynamic settings percentage, first purchase association)
                 if (get_setting('affiliate_system', '1') === '1') {
                     $aff_pct = floatval(get_setting('affiliate_percentage', '10'));
-                    
+
                     // Case A: Referred Buyer's First Purchase
                     if (!empty($buyer['referred_by']) && $is_first_purchase) {
                         $referrer = intval($buyer['referred_by']);
@@ -875,7 +875,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $aff_status = 'completed';
                                 $aff_available_at = date('Y-m-d H:i:s');
                             }
-                            
+
                             // Log inside affiliate referrals
                             $check_ref = $db->prepare("SELECT id FROM affiliate_referrals WHERE referrer_id = ? AND referred_id = ? LIMIT 1");
                             $check_ref->execute([$referrer, $buyer['id']]);
@@ -887,12 +887,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $db->prepare("INSERT INTO affiliate_referrals (referrer_id, referred_id, amount) VALUES (?, ?, ?)")
                                    ->execute([$referrer, $buyer['id'], $affiliate_commission]);
                             }
-                            
+
                             $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'affiliate', ?, ?, ?)")
                                ->execute([$referrer, $affiliate_commission, $aff_status, 'aff_buyer_' . uniqid(), $aff_available_at]);
                         }
                     }
-                    
+
                     // Case B: Referred Seller's First Sale
                     if ($vendor_row && !empty($vendor_row['referred_by']) && $is_seller_first_sale) {
                         $referrer = intval($vendor_row['referred_by']);
@@ -909,7 +909,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $aff_status = 'completed';
                                 $aff_available_at = date('Y-m-d H:i:s');
                             }
-                            
+
                             // Log inside affiliate referrals
                             $check_ref = $db->prepare("SELECT id FROM affiliate_referrals WHERE referrer_id = ? AND referred_id = ? LIMIT 1");
                             $check_ref->execute([$referrer, $seller_id]);
@@ -921,7 +921,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $db->prepare("INSERT INTO affiliate_referrals (referrer_id, referred_id, amount) VALUES (?, ?, ?)")
                                    ->execute([$referrer, $seller_id, $affiliate_commission]);
                             }
-                            
+
                             $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'affiliate', ?, ?, ?)")
                                ->execute([$referrer, $affiliate_commission, $aff_status, 'aff_seller_' . uniqid(), $aff_available_at]);
                         }
@@ -929,12 +929,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 }
             }
             $db->commit();
-            
+
             // Construct and send email alerts
             try {
                 $site_name = get_platform_name();
                 $buyer_email = $buyer['email'];
-                
+
                 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
                 $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['SERVER_PORT'] == 443);
                 $protocol = $is_https ? 'https' : 'http';
@@ -943,23 +943,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $base_dir = str_replace('\\', '/', $base_dir);
                 $base_path = ($base_dir === '/' || $base_dir === '\\') ? '' : $base_dir;
                 $site_url = $protocol . '://' . $host . $base_path;
-                
+
                 $buyer_subject = "Your Purchase Receipt from " . $site_name;
                 $buyer_body = "<h3>Thank you for your purchase!</h3>";
                 $buyer_body .= "<p>Order Summary:</p><table border='1' cellpadding='8' style='border-collapse:collapse; border-color:#e2e8f0;'>";
                 $buyer_body .= "<tr style='background:#f7fafc;'><th>Product</th><th>License</th><th>Price</th><th>Download</th></tr>";
-                
+
                 foreach($p_rows as $p_row) {
                     $pid = $p_row['id'];
                     $item_license_type = $_SESSION['cart_licenses'][$pid] ?? 'standard';
                     $base_price = ($item_license_type === 'extended' && !empty($p_row['extended_price'])) ? floatval($p_row['extended_price']) : floatval($p_row['discount_price'] ?: $p_row['price']);
                     $item_price = $base_price * $ratio;
                     $seller_id = $p_row['seller_id'];
-                    
+
                     $lic_stmt = $db->prepare("SELECT license_key FROM purchases WHERE buyer_id = ? AND product_id = ? AND license_type = ? ORDER BY id DESC LIMIT 1");
                     $lic_stmt->execute([$buyer['id'], $pid, $item_license_type]);
                     $license_key = $lic_stmt->fetchColumn();
-                    
+
                     $download_link = $site_url . '/index.php?page=dashboard&tab=purchases';
                     $buyer_body .= "<tr>";
                     $buyer_body .= "<td>" . htmlspecialchars($p_row['title']) . "</td>";
@@ -967,7 +967,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $buyer_body .= "<td>$" . number_format($item_price, 2) . "</td>";
                     $buyer_body .= "<td><a href='" . $download_link . "'>Download Here</a>" . ($license_key ? "<br><span style='font-size:11px; color:#718096;'>License: " . htmlspecialchars($license_key) . "</span>" : "") . "</td>";
                     $buyer_body .= "</tr>";
-                    
+
                     // Email Seller
                     $sel_stmt = $db->prepare("SELECT email, name FROM users WHERE id = ?");
                     $sel_stmt->execute([$seller_id]);
@@ -987,7 +987,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             } catch (Exception $email_ex) {
                 error_log("Cart checkout email failure: " . $email_ex->getMessage());
             }
-            
+
             // Clear cart & coupons
             $_SESSION['cart'] = [];
             unset($_SESSION['applied_coupon']);
@@ -1009,12 +1009,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php?page=product&id=" . intval($_POST['product_id']));
             exit;
         }
-        
+
         $pid = intval($_POST['product_id']);
         $license_type = isset($_POST['license_type']) ? trim($_POST['license_type']) : 'standard';
         $buyer = get_logged_in_user();
         $coupon = isset($_SESSION['applied_coupon']) ? $_SESSION['applied_coupon'] : null;
-        
+
         // Check if the buyer was referred and this is their first purchase
         $is_first_purchase = false;
         if (get_setting('affiliate_system', '1') === '1' && !empty($buyer['referred_by'])) {
@@ -1024,16 +1024,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $is_first_purchase = true;
             }
         }
-        
+
         try {
             $db->beginTransaction();
             $p_stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
             $p_stmt->execute([$pid]);
             $p_row = $p_stmt->fetch();
-            
+
             if ($p_row) {
                 $price = floatval(($license_type === 'extended' && !empty($p_row['extended_price'])) ? $p_row['extended_price'] : ($p_row['discount_price'] ?: $p_row['price']));
-                
+
                 if ($coupon) {
                     if ($coupon['type'] === 'percentage') {
                         $discount = $price * ($coupon['value'] / 100);
@@ -1044,9 +1044,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     }
                     $db->prepare("UPDATE coupon_codes SET uses_count = uses_count + 1 WHERE id = ?")->execute([$coupon['id']]);
                 }
-                
+
                 $seller_id = $p_row['seller_id'];
-                
+
                 $license_key = null;
                 if (!empty($p_row['licensing_enabled']) && intval($p_row['licensing_enabled']) === 1) {
                     $license_key = generate_product_license($p_row, $buyer['email'], $license_type);
@@ -1054,10 +1054,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
 
                 $db->prepare("INSERT INTO purchases (buyer_id, product_id, amount, license_key, license_type) VALUES (?, ?, ?, ?, ?)")
                    ->execute([$buyer['id'], $pid, $price, $license_key, $license_type]);
-                
+
                 $comm_percent = defined('PLATFORM_COMMISSION') ? floatval(PLATFORM_COMMISSION) : 15.0;
                 $seller_share = $price * ((100.0 - $comm_percent) / 100.0);
-                
+
                 $escrow_days = intval(get_setting('escrow_lock_days', 7));
                 if ($escrow_days > 0) {
                     $db->prepare("UPDATE wallets SET pending_balance = pending_balance + ? WHERE user_id = ?")
@@ -1070,16 +1070,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $status = 'completed';
                     $available_at = date('Y-m-d H:i:s');
                 }
-                
+
                 $db->prepare("UPDATE products SET sales_count = sales_count + 1 WHERE id = ?")
                    ->execute([$pid]);
-                
+
                 $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'sale', ?, ?, ?)")
                    ->execute([$seller_id, $seller_share, $status, 'pstk_' . uniqid(), $available_at]);
-                
+
                 $db->prepare("INSERT INTO notifications (user_id, type, product_id, message) VALUES (?, 'sale', ?, ?)")
                    ->execute([$seller_id, $pid, "Dynamic direct checkout! " . htmlspecialchars($buyer['name']) . " purchased " . htmlspecialchars($p_row['title'])]);
-                
+
                 // Check if this is the seller's first sale (referred seller first sale commission)
                 $is_seller_first_sale = false;
                 $vendor_stmt = $db->prepare("SELECT referred_by FROM users WHERE id = ?");
@@ -1096,7 +1096,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 // Affiliate Referral Commission processing (dynamic settings percentage, first purchase association)
                 if (get_setting('affiliate_system', '1') === '1') {
                     $aff_pct = floatval(get_setting('affiliate_percentage', '10'));
-                    
+
                     // Case A: Referred Buyer's First Purchase
                     if (!empty($buyer['referred_by']) && $is_first_purchase) {
                         $referrer = intval($buyer['referred_by']);
@@ -1113,7 +1113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $aff_status = 'completed';
                                 $aff_available_at = date('Y-m-d H:i:s');
                             }
-                            
+
                             // Log inside affiliate referrals
                             $check_ref = $db->prepare("SELECT id FROM affiliate_referrals WHERE referrer_id = ? AND referred_id = ? LIMIT 1");
                             $check_ref->execute([$referrer, $buyer['id']]);
@@ -1125,12 +1125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $db->prepare("INSERT INTO affiliate_referrals (referrer_id, referred_id, amount) VALUES (?, ?, ?)")
                                    ->execute([$referrer, $buyer['id'], $affiliate_commission]);
                             }
-                            
+
                             $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'affiliate', ?, ?, ?)")
                                ->execute([$referrer, $affiliate_commission, $aff_status, 'aff_buyer_' . uniqid(), $aff_available_at]);
                         }
                     }
-                    
+
                     // Case B: Referred Seller's First Sale
                     if ($vendor_row && !empty($vendor_row['referred_by']) && $is_seller_first_sale) {
                         $referrer = intval($vendor_row['referred_by']);
@@ -1147,7 +1147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $aff_status = 'completed';
                                 $aff_available_at = date('Y-m-d H:i:s');
                             }
-                            
+
                             // Log inside affiliate referrals
                             $check_ref = $db->prepare("SELECT id FROM affiliate_referrals WHERE referrer_id = ? AND referred_id = ? LIMIT 1");
                             $check_ref->execute([$referrer, $seller_id]);
@@ -1159,7 +1159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                                 $db->prepare("INSERT INTO affiliate_referrals (referrer_id, referred_id, amount) VALUES (?, ?, ?)")
                                    ->execute([$referrer, $seller_id, $affiliate_commission]);
                             }
-                            
+
                             $db->prepare("INSERT INTO transactions (user_id, amount, type, status, paystack_ref, available_at) VALUES (?, ?, 'affiliate', ?, ?, ?)")
                                ->execute([$referrer, $affiliate_commission, $aff_status, 'aff_seller_' . uniqid(), $aff_available_at]);
                         }
@@ -1167,12 +1167,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 }
             }
             $db->commit();
-            
+
             // Construct and send email alerts
             try {
                 $site_name = get_platform_name();
                 $buyer_email = $buyer['email'];
-                
+
                 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
                 $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || ($_SERVER['SERVER_PORT'] == 443);
                 $protocol = $is_https ? 'https' : 'http';
@@ -1181,12 +1181,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $base_dir = str_replace('\\', '/', $base_dir);
                 $base_path = ($base_dir === '/' || $base_dir === '\\') ? '' : $base_dir;
                 $site_url = $protocol . '://' . $host . $base_path;
-                
+
                 $buyer_subject = "Your Purchase Receipt from " . $site_name;
                 $buyer_body = "<h3>Thank you for your purchase!</h3>";
                 $buyer_body .= "<p>Order Summary:</p><table border='1' cellpadding='8' style='border-collapse:collapse; border-color:#e2e8f0;'>";
                 $buyer_body .= "<tr style='background:#f7fafc;'><th>Product</th><th>License</th><th>Price</th><th>Download</th></tr>";
-                
+
                 $download_link = $site_url . '/index.php?page=dashboard&tab=purchases';
                 $buyer_body .= "<tr>";
                 $buyer_body .= "<td>" . htmlspecialchars($p_row['title']) . "</td>";
@@ -1194,7 +1194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $buyer_body .= "<td>$" . number_format($price, 2) . "</td>";
                 $buyer_body .= "<td><a href='" . $download_link . "'>Download Here</a>" . ($license_key ? "<br><span style='font-size:11px; color:#718096;'>License: " . htmlspecialchars($license_key) . "</span>" : "") . "</td>";
                 $buyer_body .= "</tr>";
-                
+
                 // Email Seller
                 $sel_stmt = $db->prepare("SELECT email, name FROM users WHERE id = ?");
                 $sel_stmt->execute([$seller_id]);
@@ -1207,7 +1207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $seller_body .= "Log in to your dashboard to view your transactions.<br><br>Thanks,<br>" . htmlspecialchars($site_name);
                     send_custom_email($seller_info['email'], $seller_subject, $seller_body);
                 }
-                
+
                 $buyer_body .= "</table><br><p>Total Paid: $" . number_format($price, 2) . "</p>";
                 $buyer_body .= "<p>Enjoy your scripts!</p>";
                 send_custom_email($buyer_email, $buyer_subject, $buyer_body);
@@ -1252,9 +1252,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $license_manager_url = isset($_POST['license_manager_url']) ? trim($_POST['license_manager_url']) : '';
         $license_manager_secret = isset($_POST['license_manager_secret']) ? trim($_POST['license_manager_secret']) : '';
         $extended_price = (!empty($_POST['extended_price']) && floatval($_POST['extended_price']) > 0) ? floatval($_POST['extended_price']) : null;
-        
+
         $preview_images_json = json_encode(array_filter(array_map('trim', $screenshots)));
-        
+
         if (empty($title) || empty($description) || $price <= 0 || empty($download_url)) {
             $_SESSION['flash_error'] = "All primary product inputs are required.";
         } else {
@@ -1268,7 +1268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $new_price = floatval($price);
                 $prev_featured = $old_product ? intval($old_product['is_featured']) : 0;
                 $next_featured = intval($is_featured);
-                
+
                 // If user editing is seller, status becomes 'pending', if admin, keeps status
                 $status = is_admin() ? (isset($_POST['status']) ? trim($_POST['status']) : $old_product['status']) : 'pending';
 
@@ -1276,11 +1276,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $isAdminVal = is_admin() ? 1 : 0;
                 $up_stmt = $db->prepare("UPDATE products SET title = ?, description = ?, price = ?, category = ?, thumbnail = ?, download_url = ?, preview_images = ?, live_demo_url = ?, is_featured = ?, tags = ?, version = ?, status = ?, discount_price = ?, sale_ends_at = ?, licensing_enabled = ?, license_manager_url = ?, license_manager_secret = ?, extended_price = ? WHERE id = ? AND (seller_id = ? OR ? = 1)");
                 $up_stmt->execute([$title, $description, $price, $category, $thumbnail, $download_url, $preview_images_json, $live_demo_url, $is_featured, $tags, $version, $status, $discount_price, $sale_ends_at, $licensing_enabled, $license_manager_url, $license_manager_secret, $extended_price, $id, $_SESSION['user_id'], $isAdminVal]);
-                
+
                 if ($status === 'approved') {
                     send_product_email_ads($db, $id);
                 }
-                
+
                 // Track dynamic triggers for wishlisters
                 try {
                     $wish_stmt = $db->prepare("SELECT user_id FROM wishlist WHERE product_id = ?");
@@ -1312,11 +1312,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $status = is_admin() ? 'approved' : 'pending';
                 $ins_stmt = $db->prepare("INSERT INTO products (seller_id, title, description, price, category, thumbnail, download_url, preview_images, live_demo_url, is_featured, tags, version, status, discount_price, sale_ends_at, licensing_enabled, license_manager_url, license_manager_secret, extended_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $ins_stmt->execute([$_SESSION['user_id'], $title, $description, $price, $category, $thumbnail, $download_url, $preview_images_json, $live_demo_url, $is_featured, $tags, $version, $status, $discount_price, $sale_ends_at, $licensing_enabled, $license_manager_url, $license_manager_secret, $extended_price]);
-                
+
                 if ($status === 'approved') {
                     send_product_email_ads($db, $db->lastInsertId());
                 }
-                
+
                 // Email confirmation to seller and alert to admin
                 $seller = get_logged_in_user();
                 if ($seller) {
@@ -1336,7 +1336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                         send_custom_email($seller['email'], $seller_subject, $seller_body);
                     }
                 }
-                
+
                 $_SESSION['flash_success'] = is_admin() ? "Marketplace product published successfully!" : "Product submitted for administrative review.";
             }
         }
@@ -1373,17 +1373,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $pid = intval($_POST['product_id']);
         $rating = intval($_POST['rating']);
         $comment = isset($_POST['comment']) ? trim($_POST['comment']) : '';
-        
+
         if ($pid > 0 && $rating > 0) {
             // Write review
             $ins_stmt = $db->prepare("INSERT INTO reviews (product_id, user_id, rating, comment) VALUES (?, ?, ?, ?)");
             $ins_stmt->execute([$pid, $_SESSION['user_id'], $rating, $comment]);
-            
+
             // Recalculate average rating of product
             $avg_stmt = $db->prepare("SELECT AVG(rating) FROM reviews WHERE product_id = ?");
             $avg_stmt->execute([$pid]);
             $avg = $avg_stmt->fetchColumn();
-            
+
             $db->prepare("UPDATE products SET rating = ? WHERE id = ?")->execute([$avg, $pid]);
             $_SESSION['flash_success'] = "Review published. Rating score is recorded.";
         }
@@ -1395,7 +1395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
     if ($action === 'message_send') {
         $receiver_id = intval($_POST['receiver_id']);
         $content = isset($_POST['content']) ? trim($_POST['content']) : '';
-        
+
         if ($receiver_id > 0 && !empty($content)) {
             $db->prepare("INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)")
                ->execute([$_SESSION['user_id'], $receiver_id, $content]);
@@ -1409,7 +1409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $title = isset($_POST['title']) ? trim($_POST['title']) : '';
         $category = isset($_POST['category']) ? trim($_POST['category']) : '';
         $body = isset($_POST['body']) ? trim($_POST['body']) : '';
-        
+
         if (!empty($title) && !empty($body)) {
             $db->prepare("INSERT INTO forum_threads (title, category, author_id, author_name, body) VALUES (?, ?, ?, ?, ?)")
                ->execute([$title, $category, $_SESSION['user_id'], $_SESSION['user_name'], $body]);
@@ -1423,7 +1423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
     if ($action === 'forum_reply_add') {
         $tid = intval($_POST['thread_id']);
         $body = isset($_POST['body']) ? trim($_POST['body']) : '';
-        
+
         if ($tid > 0 && !empty($body)) {
             $db->prepare("INSERT INTO forum_posts (thread_id, author_name, body) VALUES (?, ?, ?)")
                ->execute([$tid, $_SESSION['user_name'], $body]);
@@ -1466,7 +1466,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $bank_name = isset($_POST['bank_name']) ? trim($_POST['bank_name']) : '';
         $account_num = isset($_POST['account_number']) ? trim($_POST['account_number']) : '';
         $account_name = isset($_POST['account_name']) ? trim($_POST['account_name']) : '';
-        
+
         if ($amount <= 0 || empty($bank_name) || empty($account_num)) {
             $_SESSION['flash_error'] = "Please fill in valid payout parameters.";
         } else if ($amount > floatval($wallet['balance'])) {
@@ -1482,17 +1482,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 try {
                     // Lock amount in wallet (deduct from user balance immediately)
                     $db->prepare("UPDATE wallets SET balance = balance - ? WHERE user_id = ?")->execute([$amount, $userId]);
-                    
+
                     // Create pending logs
                     $db->prepare("INSERT INTO withdrawals (user_id, amount, bank_name, account_number, account_name, charge_amount, net_amount) VALUES (?, ?, ?, ?, ?, ?, ?)")
                        ->execute([$userId, $amount, $bank_name, $account_num, $account_name, $charge, $net]);
-                    
+
                     // Add transaction Log
                     $db->prepare("INSERT INTO transactions (user_id, amount, type, status) VALUES (?, ?, 'withdrawal', 'pending')")
                        ->execute([$userId, $amount]);
-                    
+
                     $db->commit();
-                    
+
                     // Email Notification to Seller & Alert to Admin
                     try {
                         $site_name = get_platform_name();
@@ -1510,7 +1510,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     } catch (Exception $email_ex) {
                         error_log("Withdrawal email notification error: " . $email_ex->getMessage());
                     }
-                    
+
                     $_SESSION['flash_success'] = "Settlement requested! Funds deducted dynamically into escrow checks.";
                 } catch (Exception $e) {
                     $db->rollBack();
@@ -1529,10 +1529,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php");
             exit;
         }
-        
+
         $id = intval($_POST['id']);
         $status = isset($_POST['status']) ? trim($_POST['status']) : ''; // 'approved', 'rejected'
-        
+
         if ($id > 0 && ($status === 'approved' || $status === 'rejected')) {
             $db->beginTransaction();
             try {
@@ -1540,22 +1540,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                 $wd_stmt = $db->prepare("SELECT * FROM withdrawals WHERE id = ? AND status = 'pending'");
                 $wd_stmt->execute([$id]);
                 $wd_row = $wd_stmt->fetch();
-                
+
                 if ($wd_row) {
                     $wd_user = $wd_row['user_id'];
                     $amount = floatval($wd_row['amount']);
-                    
+
                     if ($status === 'rejected') {
                         // Refund wallet
                         $db->prepare("UPDATE wallets SET balance = balance + ? WHERE user_id = ?")->execute([$amount, $wd_user]);
                     }
-                    
+
                     // Update main record stats
                     $db->prepare("UPDATE withdrawals SET status = ?, processed_at = CURRENT_TIMESTAMP WHERE id = ?")
                        ->execute([$status, $id]);
-                    
+
                     $_SESSION['flash_success'] = "Payout request was " . htmlspecialchars($status) . ".";
-                    
+
                     // Email Notification to Seller
                     try {
                         $seller_stmt = $db->prepare("SELECT email, name FROM users WHERE id = ?");
@@ -1605,11 +1605,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
 
                 if ($vr_row) {
                     $seller_id = $vr_row['seller_id'];
-                    
+
                     // Update User verification columns
                     $v_bit = ($status === 'approved') ? 1 : 0;
                     $db->prepare("UPDATE users SET is_verified = ? WHERE id = ?")->execute([$v_bit, $seller_id]);
-                    
+
                     // Update Request record status
                     $db->prepare("UPDATE verification_requests SET status = ? WHERE id = ?")->execute([$status, $id]);
                 }
@@ -1687,27 +1687,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php?page=dashboard");
             exit;
         }
-        
+
         $subject = isset($_POST['subject']) ? trim($_POST['subject']) : '';
         $category = isset($_POST['category']) ? trim($_POST['category']) : '';
         $priority = isset($_POST['priority']) ? trim($_POST['priority']) : 'normal';
         $message = isset($_POST['message']) ? trim($_POST['message']) : '';
-        
+
         if (empty($subject) || empty($category) || empty($message)) {
             $_SESSION['flash_error'] = "Please fill in all ticket parameters.";
             header("Location: index.php?page=dashboard&tab=support_tickets");
             exit;
         }
-        
+
         $user = get_logged_in_user();
-        
+
         $ins = $db->prepare("INSERT INTO support_tickets (user_id, subject, category, priority, status) VALUES (?, ?, ?, ?, 'open')");
         $ins->execute([$user['id'], $subject, $category, $priority]);
         $ticket_id = $db->lastInsertId();
-        
+
         $ins_msg = $db->prepare("INSERT INTO support_messages (ticket_id, sender_id, sender_name, content) VALUES (?, ?, ?, ?)");
         $ins_msg->execute([$ticket_id, $user['id'], $user['name'], $message]);
-        
+
         // Email alert to Admin
         try {
             $admin_email = get_setting('smtp_from_email', 'admin@' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
@@ -1717,7 +1717,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         } catch (Exception $email_ex) {
             error_log("Ticket create email alert error: " . $email_ex->getMessage());
         }
-        
+
         $_SESSION['flash_success'] = "Support ticket created successfully!";
         header("Location: index.php?page=dashboard&tab=support_tickets&ticket_id=" . $ticket_id);
         exit;
@@ -1730,40 +1730,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php?page=dashboard");
             exit;
         }
-        
+
         $ticket_id = isset($_POST['ticket_id']) ? intval($_POST['ticket_id']) : 0;
         $message = isset($_POST['message']) ? trim($_POST['message']) : '';
-        
+
         if ($ticket_id <= 0 || empty($message)) {
             $_SESSION['flash_error'] = "Message content is required.";
             header("Location: index.php?page=dashboard&tab=support_tickets");
             exit;
         }
-        
+
         $user = get_logged_in_user();
-        
+
         // Fetch ticket to verify ownership (if not admin)
         $t_stmt = $db->prepare("SELECT * FROM support_tickets WHERE id = ?");
         $t_stmt->execute([$ticket_id]);
         $ticket = $t_stmt->fetch();
-        
+
         if (!$ticket || (!is_admin() && intval($ticket['user_id']) !== intval($user['id']))) {
             $_SESSION['flash_error'] = "Unauthorized or ticket not found.";
             header("Location: index.php?page=dashboard&tab=support_tickets");
             exit;
         }
-        
+
         // Insert message
         $ins_msg = $db->prepare("INSERT INTO support_messages (ticket_id, sender_id, sender_name, content) VALUES (?, ?, ?, ?)");
         $ins_msg->execute([$ticket_id, $user['id'], $user['name'], $message]);
-        
+
         // Reopen/Update ticket status
         $next_status = is_admin() ? 'answered' : 'open';
         $up_status = $db->prepare("UPDATE support_tickets SET status = ? WHERE id = ?");
         $up_status->execute([$next_status, $ticket_id]);
-        
+
         $site_name = get_platform_name();
-        
+
         try {
             if (is_admin()) {
                 // Reply by admin -> Notify User
@@ -1807,15 +1807,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             header("Location: index.php");
             exit;
         }
-        
+
         $ticket_id = isset($_POST['ticket_id']) ? intval($_POST['ticket_id']) : 0;
         $status = isset($_POST['status']) ? trim($_POST['status']) : '';
         $priority = isset($_POST['priority']) ? trim($_POST['priority']) : '';
-        
+
         if ($ticket_id > 0) {
             if (!empty($status)) {
                 $db->prepare("UPDATE support_tickets SET status = ? WHERE id = ?")->execute([$status, $ticket_id]);
-                
+
                 // Notify User of status change
                 try {
                     $t_stmt = $db->prepare("SELECT * FROM support_tickets WHERE id = ?");
@@ -1841,7 +1841,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             }
             $_SESSION['flash_success'] = "Ticket parameters updated.";
         }
-        
+
         header("Location: index.php?page=dashboard&tab=admin_tickets" . ($ticket_id > 0 ? "&ticket_id=" . $ticket_id : ""));
         exit;
     }
@@ -2022,7 +2022,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $code = isset($_POST['coupon_code']) ? trim($_POST['coupon_code']) : '';
         $redirect_page = isset($_POST['redirect_page']) ? trim($_POST['redirect_page']) : $page;
         $redirect_id = isset($_POST['redirect_id']) ? intval($_POST['redirect_id']) : 0;
-        
+
         $location = "index.php?page=" . urlencode($redirect_page);
         if ($redirect_id > 0) {
             $location .= "&id=" . $redirect_id;
@@ -2034,7 +2034,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             $stmt = $db->prepare("SELECT * FROM coupon_codes WHERE code = ?");
             $stmt->execute([strtoupper($code)]);
             $coupon = $stmt->fetch();
-            
+
             if (!$coupon) {
                 $_SESSION['flash_error'] = "Invalid coupon code.";
             } else {
@@ -2149,8 +2149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             $p_stmt->execute([$id]);
             $prod = $p_stmt->fetch();
             if ($prod) {
-                $msg = $status === 'approved' 
-                    ? "🎉 Congratulations! Your product \"" . htmlspecialchars($prod['title']) . "\" has been approved and is now live." 
+                $msg = $status === 'approved'
+                    ? "🎉 Congratulations! Your product \"" . htmlspecialchars($prod['title']) . "\" has been approved and is now live."
                     : "⚠️ Your product \"" . htmlspecialchars($prod['title']) . "\" was rejected. Reason: " . htmlspecialchars($feedback);
                 $db->prepare("INSERT INTO notifications (user_id, type, product_id, message) VALUES (?, 'product_approved', ?, ?)")
                    ->execute([$prod['seller_id'], $id, $msg]);
@@ -2191,22 +2191,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             try {
                 $stmt = $db->prepare("UPDATE products SET status = ? WHERE id = ?");
                 $notif_stmt = $db->prepare("INSERT INTO notifications (user_id, type, product_id, message) VALUES (?, 'product_approved', ?, ?)");
-                
+
                 foreach ($product_ids as $pid) {
                     $pid = intval($pid);
                     $stmt->execute([$status, $pid]);
-                    
+
                     if ($status === 'approved') {
                         send_product_email_ads($db, $pid);
                     }
-                    
+
                     // Notify seller
                     $p_stmt = $db->prepare("SELECT seller_id, title FROM products WHERE id = ?");
                     $p_stmt->execute([$pid]);
                     $prod = $p_stmt->fetch();
                     if ($prod) {
-                        $msg = $status === 'approved' 
-                            ? "🎉 Congratulations! Your product \"" . htmlspecialchars($prod['title']) . "\" has been approved in bulk and is now live." 
+                        $msg = $status === 'approved'
+                            ? "🎉 Congratulations! Your product \"" . htmlspecialchars($prod['title']) . "\" has been approved in bulk and is now live."
                             : "⚠️ Your product \"" . htmlspecialchars($prod['title']) . "\" was rejected during bulk review.";
                         $notif_stmt->execute([$prod['seller_id'], $pid, $msg]);
 
@@ -2272,7 +2272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $name = isset($_POST['name']) ? trim($_POST['name']) : '';
         $bio = isset($_POST['bio']) ? trim($_POST['bio']) : '';
         $avatar_url = isset($_POST['avatar_url']) ? trim($_POST['avatar_url']) : '';
-        
+
         if (empty($name)) {
             $_SESSION['flash_error'] = "Name field cannot be left blank.";
         } else {
@@ -2370,7 +2370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             $stmt = $db->prepare("SELECT id, title, price, discount_price, category, thumbnail FROM products WHERE status = 'approved' AND (title LIKE ? OR description LIKE ? OR tags LIKE ?) LIMIT 5");
             $stmt->execute(["%$q%", "%$q%", "%$q%"]);
             $results = $stmt->fetchAll();
-            
+
             foreach ($results as &$item) {
                 $item['formatted_price'] = format_price($item['price']);
                 $item['formatted_discount'] = $item['discount_price'] ? format_price($item['discount_price']) : null;
@@ -2391,7 +2391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         }
         $pid = intval($_POST['product_id']);
         $uid = $_SESSION['user_id'];
-        
+
         try {
             $chk_stmt = $db->prepare("SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?");
             $chk_stmt->execute([$uid, $pid]);
@@ -2440,12 +2440,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
     // Download action handler: downloads static file as zip attachment
     if ($action === 'download') {
         $pid = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        
+
         // Fetch product
         $p_stmt = $db->prepare("SELECT * FROM products WHERE id = ?");
         $p_stmt->execute([$pid]);
         $prod = $p_stmt->fetch();
-        
+
         if ($prod) {
             // Check authorization (purchased or seller or admin)
             $auth_dl = false;
@@ -2460,12 +2460,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     if ($pur_chk->fetch()) $auth_dl = true;
                 }
             }
-            
+
             if ($auth_dl) {
                 // Return a generic zip file stream
                 header('Content-Type: application/zip');
                 header('Content-Disposition: attachment; filename="' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $prod['title']) . '_v1_0.zip"');
-                
+
                 // Read mock zip payload or empty string
                 echo "PK\x03\x04\x14\x00\x08\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0a\x00\x00\x00readme.txtThis is a secured marketplace delivery files for " . htmlspecialchars($prod['title']) . "! License: MIT CodeVault Certified.";
                 exit;
@@ -2488,7 +2488,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         }
         $pid = intval($_POST['product_id']);
         $uid = $_SESSION['user_id'];
-        
+
         // Check if exists
         $chk_stmt = $db->prepare("SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?");
         $chk_stmt->execute([$uid, $pid]);
@@ -2533,7 +2533,7 @@ if (is_logged_in()) {
     $notif_stmt = $db->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
     $notif_stmt->execute([$_SESSION['user_id']]);
     $notifications_list = $notif_stmt->fetchAll();
-    
+
     $notif_count_stmt = $db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND `read` = 0");
     $notif_count_stmt->execute([$_SESSION['user_id']]);
     $unread_notifications_count = $notif_count_stmt->fetchColumn();
@@ -2587,22 +2587,22 @@ if ($page === 'product' && isset($_GET['id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="<?php 
+    <link rel="icon" type="image/svg+xml" href="<?php
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : ($_SERVER['SERVER_PORT'] == 443));
         $protocol = $is_https ? 'https' : 'http';
         $base_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
         $base_path = ($base_dir === '/' || $base_dir === '\\') ? '' : $base_dir;
-        echo htmlspecialchars($protocol . '://' . $host . $base_path . '/index.php?action=favicon'); 
+        echo htmlspecialchars($protocol . '://' . $host . $base_path . '/index.php?action=favicon');
     ?>">
-    
+
     <!-- Basic SEO -->
     <title><?php echo $page_title; ?></title>
     <meta name="description" content="<?php echo $page_desc; ?>">
     <meta name="keywords" content="<?php echo $page_keywords; ?>">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="<?php echo $page_type; ?>">
     <meta property="og:url" content="<?php echo $current_abs_url; ?>">
@@ -2616,7 +2616,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     <meta property="twitter:title" content="<?php echo $page_title; ?>">
     <meta property="twitter:description" content="<?php echo $page_desc; ?>">
     <meta property="twitter:image" content="<?php echo $page_og_img; ?>">
-    
+
     <!-- Google Tag Manager -->
     <?php if ($gtm_id = get_setting('analytics_gtm_id')): ?>
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -2625,7 +2625,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','<?php echo htmlspecialchars($gtm_id); ?>');</script>
     <?php endif; ?>
-    
+
     <!-- Google Analytics (GA4) -->
     <?php if ($ga4_id = get_setting('analytics_ga4_id')): ?>
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars($ga4_id); ?>"></script>
@@ -2636,7 +2636,7 @@ if ($page === 'product' && isset($_GET['id'])) {
       gtag('config', '<?php echo htmlspecialchars($ga4_id); ?>');
     </script>
     <?php endif; ?>
-    
+
     <!-- Facebook Pixel -->
     <?php if ($pixel_id = get_setting('analytics_facebook_pixel_id')): ?>
     <script>
@@ -2655,7 +2655,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     src="https://www.facebook.com/tr?id=<?php echo htmlspecialchars($pixel_id); ?>&ev=PageView&noscript=1"
     /></noscript>
     <?php endif; ?>
-    
+
     <!-- Schema.org structured JSON-LD -->
     <script type="application/ld+json">
     {
@@ -2736,11 +2736,11 @@ if ($page === 'product' && isset($_GET['id'])) {
 
     <!-- Codester 2-Tier Header -->
     <header class="w-full sticky top-0 z-40 shadow-md">
-        
+
         <!-- Tier 1: Dark Slate top navigation -->
         <div class="bg-[#1c2229] py-3 px-6 text-white border-b border-slate-700/50">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                
+
                 <!-- Logo & Autocomplete Search -->
                 <div class="flex items-center gap-6 w-full md:w-auto">
                     <a href="index.php?page=marketplace" class="flex items-center gap-2.5 shrink-0">
@@ -2751,20 +2751,20 @@ if ($page === 'product' && isset($_GET['id'])) {
                             <h1 class="font-extrabold text-base tracking-tight leading-tight">CodeVault</h1>
                         </div>
                     </a>
-                    
+
                     <!-- Live Autocomplete Search Container -->
                     <div class="relative w-full md:w-80 shrink-0">
                         <div class="flex items-center">
-                            <input 
-                                type="text" 
-                                id="live-search-input" 
+                            <input
+                                type="text"
+                                id="live-search-input"
                                 autocomplete="off"
-                                placeholder="Search scripts, themes, templates..." 
+                                placeholder="Search scripts, themes, templates..."
                                 class="w-full pl-3 pr-10 py-1.5 rounded bg-slate-800 text-white text-xs border border-slate-700 outline-none focus:border-[#5cb85c] focus:bg-slate-900 transition-colors"
                             >
                             <span class="absolute right-3 text-slate-400 pointer-events-none text-xs">🔍</span>
                         </div>
-                        
+
                         <!-- Floating Live Search Dropdown -->
                         <div id="live-search-results" class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 text-slate-800 hidden overflow-hidden z-50">
                             <!-- JS Inject results -->
@@ -2784,7 +2784,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         <a href="<?php echo url('tutorials'); ?>" class="hover:text-white transition-colors <?php echo $page === 'tutorials' ? 'text-white' : ''; ?>">Blueprints</a>
                         <a href="<?php echo url('collections'); ?>" class="hover:text-white transition-colors <?php echo $page === 'collections' ? 'text-white' : ''; ?>">Collections</a>
                     </div>
-                    
+
                     <div class="flex items-center gap-4 bg-transparent border-l border-slate-700/50 pl-4">
                         <!-- Shopping Cart Button -->
                         <button onclick="toggleCartDrawer()" class="relative p-2 rounded bg-slate-800 hover:bg-slate-700 transition-colors outline-none">
@@ -2793,7 +2793,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                                 <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#5cb85c] text-white flex items-center justify-center text-[10px] font-mono font-bold shadow shadow-emerald-500/20"><?php echo count($_SESSION['cart']); ?></span>
                             <?php endif; ?>
                         </button>
-                        
+
                         <!-- Notifications Bell Dropdown -->
                         <?php if (is_logged_in()): ?>
                             <div class="relative group">
@@ -2803,7 +2803,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                                         <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-mono font-bold"><?php echo $unread_notifications_count; ?></span>
                                     <?php endif; ?>
                                 </button>
-                                
+
                                 <div class="absolute right-0 top-full pt-2 w-80 hidden group-hover:block z-50">
                                     <div class="bg-white rounded-lg shadow-xl border border-gray-100 text-slate-800 overflow-hidden">
                                         <div class="p-3 border-b border-gray-100 font-bold flex justify-between items-center text-xs">
@@ -2837,7 +2837,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                                     <span>Dashboard</span>
                                     <span class="hidden md:inline border-l border-white/20 pl-1.5 text-slate-200"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
                                 </a>
-                                
+
                                 <div class="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-50">
                                     <div class="bg-white rounded-lg shadow-xl border border-gray-100 text-slate-800 overflow-hidden">
                                         <div class="p-3 bg-gray-50/50 border-b border-gray-100">
@@ -2868,13 +2868,13 @@ if ($page === 'product' && isset($_GET['id'])) {
         <!-- Tier 2: White Category dropdown bar -->
         <div class="bg-white border-b border-gray-200 shadow-sm py-2 px-6">
             <div class="max-w-7xl mx-auto flex items-center justify-between">
-                
+
                 <!-- Mega Dropdowns / Category List -->
                 <div class="flex items-center gap-6 text-slate-700 text-xs font-bold bg-transparent">
                     <a href="index.php?page=marketplace" class="text-slate-900 hover-accent transition-colors flex items-center gap-1 font-extrabold text-[13px] mr-2">
                         Marketplace Home
                     </a>
-                    
+
                     <?php foreach ($header_categories as $cat): ?>
                         <a href="index.php?page=marketplace&category=<?php echo urlencode($cat['name']); ?>" class="hover-accent transition-colors py-1.5 flex items-center gap-1.5">
                             <?php if ($cat['icon']): ?>
@@ -2884,7 +2884,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         </a>
                     <?php endforeach; ?>
                 </div>
-                
+
                 <!-- CTA buttons -->
                 <div class="hidden sm:flex items-center gap-3">
                     <?php if (is_seller()): ?>
@@ -2897,7 +2897,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         </a>
                     <?php endif; ?>
                 </div>
-                
+
             </div>
         </div>
 
@@ -2905,12 +2905,12 @@ if ($page === 'product' && isset($_GET['id'])) {
 
     <!-- Content Outer Wrapper -->
     <main class="max-w-7xl w-full mx-auto px-6 py-8 flex-1 flex flex-col justify-start">
-        
+
         <!-- Top Advertisement Zone -->
-        <?php 
+        <?php
         $ad_top_enabled = get_setting('ad_top_enabled', '0');
         $ad_top_code = get_setting('ad_top_code', '');
-        if ($ad_top_enabled === '1' && !empty($ad_top_code)): 
+        if ($ad_top_enabled === '1' && !empty($ad_top_code)):
         ?>
             <div class="mb-6 p-2 bg-white rounded border border-gray-200/80 shadow-sm flex items-center justify-center overflow-hidden max-w-full animate-fade">
                 <div class="w-full text-center">
@@ -2918,7 +2918,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 </div>
             </div>
         <?php endif; ?>
-        
+
         <!-- Action Alerts -->
         <?php if ($error): ?>
             <div class="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 shadow-sm">
@@ -2956,10 +2956,10 @@ if ($page === 'product' && isset($_GET['id'])) {
             'policies' => 'policies.php',
             'help_center' => 'help_center.php',
         ];
-        
+
         $load_view = isset($view_map[$page]) ? $view_map[$page] : 'marketplace.php';
         $view_path = __DIR__ . '/pages/' . $load_view;
-        
+
         if (file_exists($view_path)) {
             require_once $view_path;
         } else {
@@ -2972,7 +2972,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     <!-- Codester-Style 4-Column Dark Footer -->
     <footer class="bg-[#1c2229] border-t border-slate-700 text-slate-300 py-16 px-6 text-xs select-none">
         <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
-            
+
             <!-- Column 1: About / Branding -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2.5">
@@ -3031,7 +3031,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             </div>
 
         </div>
-        
+
         <div class="max-w-7xl mx-auto border-t border-slate-850 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-slate-500 bg-transparent text-[11px] font-semibold">
             <p>&copy; 2026 CodeVault Inc. All rights reserved. Platform powered by secure Paystack escrow channels.</p>
             <div class="flex gap-4">
@@ -3042,14 +3042,14 @@ if ($page === 'product' && isset($_GET['id'])) {
                 <span>Instant Delivery</span>
             </div>
         </div>
-        
+
     </footer>
 
     <!-- Authorization Portal Modal (Login & Register) -->
     <div id="login-auth-portal-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden select-none">
         <div class="bg-white rounded-lg w-full max-w-sm p-8 border border-white/10 shadow-2xl relative">
             <button onclick="closeLoginModal()" class="absolute right-6 top-6 text-slate-400 hover:text-slate-900 font-bold text-lg outline-none">✕</button>
-            
+
             <!-- Tab switches inside modal -->
             <div class="flex gap-4 mb-6 border-b pb-2 text-sm font-bold uppercase tracking-wider">
                 <button onclick="toggleAuthTab('login')" id="tab-login-btn" class="border-b-2 border-[#5cb85c] text-[#5cb85c] outline-none pb-1">Sign In</button>
@@ -3134,7 +3134,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     <div id="shopping-cart-drawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
         <div class="absolute inset-0 overflow-hidden">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="toggleCartDrawer()"></div>
-            
+
             <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                 <div class="pointer-events-auto w-screen max-w-md">
                     <div class="flex h-full flex-col overflow-y-scroll bg-white rounded-l-lg border-l py-6 shadow-2xl relative">
@@ -3142,7 +3142,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                             <h2 class="text-lg font-black text-slate-950 tracking-tight" id="slide-over-title">Review Shopping Cart</h2>
                             <button type="button" onclick="toggleCartDrawer()" class="text-slate-400 hover:text-slate-900 outline-none text-base">✕</button>
                         </div>
-                        
+
                         <div class="mt-8 flex-1 px-6 space-y-4">
                             <?php if (empty($cart_products_arr)): ?>
                                 <div class="text-center py-16 text-slate-400 font-bold text-xs leading-relaxed border border-dashed rounded-lg p-6">
@@ -3179,7 +3179,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                                 <input type="text" name="coupon_code" required placeholder="Enter Coupon Code" class="flex-1 px-3 py-2 rounded border text-xs outline-none focus:border-[#5cb85c]">
                                 <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded text-xs transition-colors">Apply</button>
                             </form>
-                            
+
                             <?php if (isset($_SESSION['applied_coupon'])): ?>
                                 <div class="p-2.5 bg-emerald-50 border border-emerald-100 text-[#5cb85c] rounded text-[11px] font-bold flex justify-between items-center">
                                     <span>Coupon Code Applied: <strong><?php echo htmlspecialchars($_SESSION['applied_coupon']['code']); ?></strong> (-<?php echo $_SESSION['applied_coupon']['type'] === 'percentage' ? $_SESSION['applied_coupon']['value'].'%' : format_price($_SESSION['applied_coupon']['value']); ?>)</span>
@@ -3206,7 +3206,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                             </div>
 
                             <?php if (!empty($cart_products_arr)): ?>
-                                <button 
+                                <button
                                     onclick="triggerPaystackCartCheckout()"
                                     class="w-full bg-[#5cb85c] hover:bg-[#4cae4c] text-white py-3.5 rounded text-xs font-extrabold uppercase shadow transition-all flex items-center justify-center gap-2 outline-none"
                                 >
@@ -3229,7 +3229,7 @@ if ($page === 'product' && isset($_GET['id'])) {
 
     <!-- Screenshot Fullscreen Lightbox Modal component -->
     <div id="screenshot-lightbox-modal-core" class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col justify-between hidden select-none" onclick="closeLightboxModal()">
-        
+
         <!-- Header controls -->
         <div class="p-6 flex justify-between items-center text-white" onclick="event.stopPropagation()">
             <div>
@@ -3259,13 +3259,13 @@ if ($page === 'product' && isset($_GET['id'])) {
     <div id="product-studio-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden select-none">
         <div class="bg-white rounded-lg w-full max-w-2xl p-8 border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeProductModal()" class="absolute right-6 top-6 text-slate-400 hover:text-slate-900 font-bold text-lg outline-none">✕</button>
-            
+
             <h3 id="product-modal-title" class="font-black text-xl text-slate-900 mb-2">Publish Code script</h3>
             <p class="text-xs text-slate-500 mb-6">Listed products are peer-vetted automatically. Earn split royalties instantly through verified Paystack settlement triggers.</p>
 
             <form method="POST" action="index.php?action=product_save" class="space-y-4">
                 <input type="hidden" name="id" id="prod-input-id" value="0">
-                
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Title</label>
@@ -3304,17 +3304,17 @@ if ($page === 'product' && isset($_GET['id'])) {
                             <button type="button" onclick="setThumbMode('file')" id="btn-thumb-mode-file" class="px-2.5 py-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-r border border-gray-300 outline-none">Local Upload</button>
                         </div>
                     </div>
-                    
+
                     <div class="flex gap-4 items-center">
                         <div class="w-16 h-16 rounded border bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 shadow-inner" id="thumb-preview-box">
                             <img id="prod-thumb-preview-img" src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600" class="w-full h-full object-cover" alt="Thumbnail Preview" referrerpolicy="no-referrer">
                         </div>
-                        
+
                         <div class="flex-1">
                             <div id="thumb-input-pane-url" class="block">
                                 <input type="url" name="thumbnail" id="prod-input-thumbnail" required value="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600" oninput="updateThumbPreview(this.value)" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
                             </div>
-                            
+
                             <div id="thumb-input-pane-file" class="hidden">
                                 <div id="thumb-dropzone" class="border-2 border-dashed border-slate-350 rounded p-4 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-slate-50/50">
                                     <span class="text-xs text-slate-500 font-bold" id="thumb-upload-text">📁 Click or Drop Thumbnail File</span>
@@ -3354,9 +3354,9 @@ if ($page === 'product' && isset($_GET['id'])) {
                             <p class="text-[9px] text-slate-455 leading-normal">Generate license keys automatically on purchase using an external License Manager API.</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                name="licensing_enabled" 
+                            <input
+                                type="checkbox"
+                                name="licensing_enabled"
                                 id="prod-input-licensing-enabled"
                                 value="1"
                                 class="sr-only peer"
@@ -3404,7 +3404,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gallery Screenshots (Max 10)</label>
                         <span class="text-[10px] font-bold text-slate-400 font-mono" id="screenshot-counter">0 / 10</span>
                     </div>
-                    
+
                     <!-- Drag & Drop Zone -->
                     <div id="screenshots-dropzone" class="border-2 border-dashed border-slate-350 rounded-lg p-5 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-white">
                         <span class="text-xl mb-1">🖼️</span>
@@ -3412,7 +3412,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         <span class="text-[9px] text-slate-400 mt-0.5">Supports PNG, JPG, WEBP, GIF (Automatically optimized)</span>
                         <input type="file" id="screenshots-file-input" accept="image/*" multiple class="absolute inset-0 opacity-0 cursor-pointer">
                     </div>
-                    
+
                     <!-- Manual input block -->
                     <div class="flex gap-2">
                         <input type="url" id="screenshot-manual-url" placeholder="https://example.com/screenshot.jpg" class="flex-1 px-3 py-2 rounded border bg-white outline-none text-xs focus:border-[#5cb85c]">
@@ -3423,7 +3423,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     <div id="screenshots-preview-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 select-none">
                         <!-- Previews injected here -->
                     </div>
-                    
+
                     <!-- Hidden inputs container -->
                     <div id="screenshots-hidden-inputs"></div>
                 </div>
@@ -3440,9 +3440,9 @@ if ($page === 'product' && isset($_GET['id'])) {
                         <p class="text-[9px] text-slate-450 leading-normal max-w-xs">Checking this will tag the script as Featured and trigger price/announcement notifications for wishlisters.</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            name="is_featured" 
+                        <input
+                            type="checkbox"
+                            name="is_featured"
                             id="prod-input-featured"
                             value="1"
                             class="sr-only peer"
@@ -3451,7 +3451,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     </label>
                 </div>
 
-                <button type="submit" onclick="if(this.form.checkValidity()) { setTimeout(() => { this.disabled=true; this.innerHTML='Publishing...'; }, 0); } else { this.form.reportValidity(); return false; }" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
+                <button type="button" id="publish-asset-btn" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
                     Publish System Asset
                 </button>
             </form>
@@ -3546,19 +3546,19 @@ if ($page === 'product' && isset($_GET['id'])) {
                 const directForm = document.createElement('form');
                 directForm.method = 'POST';
                 directForm.action = 'index.php?action=direct_checkout';
-                
+
                 const idInput = document.createElement('input');
                 idInput.type = 'hidden';
                 idInput.name = 'product_id';
                 idInput.value = product.id;
                 directForm.appendChild(idInput);
-                
+
                 const typeInput = document.createElement('input');
                 typeInput.type = 'hidden';
                 typeInput.name = 'license_type';
                 typeInput.value = document.getElementById('selected-license-type')?.value || 'standard';
                 directForm.appendChild(typeInput);
-                
+
                 document.body.appendChild(directForm);
                 directForm.submit();
             }, 1500);
@@ -3573,15 +3573,15 @@ if ($page === 'product' && isset($_GET['id'])) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-            
+
             lightboxImages = imagesArray || [];
             lightboxActiveIndex = 0;
-            
+
             if (lightboxImages.length === 0) return;
 
             document.getElementById('lightbox-title-text').innerText = product.title || "Preview Screenshots";
             document.getElementById('lightbox-category-text').innerText = product.category || "License Asset";
-            
+
             updateLightboxContent();
             document.getElementById('screenshot-lightbox-modal-core').classList.remove('hidden');
         }
@@ -3614,7 +3614,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     searchResults.classList.add('hidden');
                     return;
                 }
-                
+
                 debounceTimer = setTimeout(() => {
                     fetch(`index.php?action=live_search&q=${encodeURIComponent(query)}`)
                         .then(response => response.json())
@@ -3668,7 +3668,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             const paneFile = document.getElementById('thumb-input-pane-file');
             const btnUrl = document.getElementById('btn-thumb-mode-url');
             const btnFile = document.getElementById('btn-thumb-mode-file');
-            
+
             if (mode === 'url') {
                 if (paneUrl) paneUrl.classList.remove('hidden');
                 if (paneFile) paneFile.classList.add('hidden');
@@ -3781,7 +3781,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             const thumbText = document.getElementById('thumb-upload-text');
             const thumbProgress = document.getElementById('thumb-upload-progress');
             const thumbProgressBar = document.getElementById('thumb-upload-progress-bar');
-            
+
             if (thumbDropzone && thumbInput) {
                 thumbDropzone.addEventListener('dragover', (e) => {
                     e.preventDefault();
@@ -3811,9 +3811,9 @@ if ($page === 'product' && isset($_GET['id'])) {
                 }
                 thumbText.innerText = 'Converting & Uploading...';
                 thumbProgress.classList.remove('hidden');
-                
+
                 convertToWebP(file).then(({ blob, name }) => {
-                    uploadFileAJAX(blob, name, 'thumbnail', 
+                    uploadFileAJAX(blob, name, 'thumbnail',
                         (percent) => {
                             thumbProgressBar.style.width = percent + '%';
                         },
@@ -3835,7 +3835,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             // Screenshots Gallery listeners
             const shotsInput = document.getElementById('screenshots-file-input');
             const shotsDropzone = document.getElementById('screenshots-dropzone');
-            
+
             if (shotsDropzone && shotsInput) {
                 shotsDropzone.addEventListener('dragover', (e) => {
                     e.preventDefault();
@@ -3860,7 +3860,7 @@ if ($page === 'product' && isset($_GET['id'])) {
 
             function handleScreenshotsUpload(files) {
                 const maxAllowed = 10;
-                
+
                 for (let i = 0; i < files.length; i++) {
                     let currentCount = uploadedScreenshots.length;
                     const file = files[i];
@@ -3872,11 +3872,11 @@ if ($page === 'product' && isset($_GET['id'])) {
                         alert('Maximum limit of 10 screenshots reached.');
                         break;
                     }
-                    
+
                     // Allow sellers to see the thumbnail of the images as they drop the images (using createObjectURL)
                     const localUrl = URL.createObjectURL(file);
                     const fileIndex = uploadedScreenshots.length;
-                    
+
                     const newShot = {
                         url: localUrl,
                         originalUrl: '',
@@ -3884,11 +3884,11 @@ if ($page === 'product' && isset($_GET['id'])) {
                         progress: 0,
                         name: file.name
                     };
-                    
+
                     uploadedScreenshots.push(newShot);
-                    
+
                     renderScreenshotsGrid();
-                    
+
                     // Upload closure
                     (function(index, fileObj, urlLocal) {
                         convertToWebP(fileObj).then(({ blob, name }) => {
@@ -3925,28 +3925,51 @@ if ($page === 'product' && isset($_GET['id'])) {
                     renderScreenshotsGrid();
                 });
             }
+
+            const publishBtn = document.getElementById('publish-asset-btn');
+            if (publishBtn) {
+                publishBtn.addEventListener('click', function() {
+                    const form = this.closest('form');
+                    if (!form) return;
+
+                    const stillUploading = uploadedScreenshots.some(s => s.isUploading);
+                    if (stillUploading) {
+                        alert('Please wait - screenshots are still uploading.');
+                        return;
+                    }
+
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+
+                    this.disabled = true;
+                    this.innerHTML = 'Publishing...';
+                    form.submit();
+                });
+            }
         });
 
         function renderScreenshotsGrid() {
             const grid = document.getElementById('screenshots-preview-grid');
             const hiddenInputs = document.getElementById('screenshots-hidden-inputs');
             const counter = document.getElementById('screenshot-counter');
-            
+
             if (!grid) return;
             grid.innerHTML = '';
             hiddenInputs.innerHTML = '';
-            
+
             counter.innerText = uploadedScreenshots.length + " / 10";
-            
+
             const titleInput = document.getElementById('prod-input-title');
             const titleVal = (titleInput && titleInput.value) ? titleInput.value.trim() : 'Product';
-            
+
             uploadedScreenshots.forEach((shot, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = "relative aspect-video rounded border overflow-hidden bg-slate-100 group border-gray-200 shadow-sm";
-                
+
                 const altText = titleVal + " - screenshot " + (index + 1);
-                
+
                 let progressOverlay = '';
                 if (shot.isUploading) {
                     progressOverlay = `
@@ -3958,14 +3981,14 @@ if ($page === 'product' && isset($_GET['id'])) {
                         </div>
                     `;
                 }
-                
+
                 itemDiv.innerHTML = `
                     <img src="${shot.url}" class="w-full h-full object-cover" alt="${altText}" referrerpolicy="no-referrer">
                     ${progressOverlay}
                     <button type="button" onclick="removeScreenshot(${index})" class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow z-20 outline-none hover:scale-105 transition-transform" title="Remove image">✕</button>
                 `;
                 grid.appendChild(itemDiv);
-                
+
                 if (!shot.isUploading && shot.originalUrl) {
                     const hidden = document.createElement('input');
                     hidden.type = 'hidden';
@@ -3993,12 +4016,12 @@ if ($page === 'product' && isset($_GET['id'])) {
             if (!input) return;
             const urlVal = input.value.trim();
             if (!urlVal) return;
-            
+
             if (uploadedScreenshots.length >= 10) {
                 alert('Maximum limit of 10 screenshots reached.');
                 return;
             }
-            
+
             uploadedScreenshots.push({
                 url: urlVal,
                 originalUrl: urlVal,
@@ -4006,7 +4029,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 progress: 100,
                 name: 'manual-url'
             });
-            
+
             input.value = '';
             renderScreenshotsGrid();
         }
@@ -4023,7 +4046,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             const thumbnailInput = document.getElementById('prod-input-thumbnail');
             const zipInput = document.getElementById('prod-input-zip');
             const featuredInput = document.getElementById('prod-input-featured');
-            
+
             const tagsInput = document.getElementById('prod-input-tags');
             const versionInput = document.getElementById('prod-input-version');
             const discountInput = document.getElementById('prod-input-discount');
@@ -4045,7 +4068,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 descInput.value = prodData.description;
                 thumbnailInput.value = prodData.thumbnail;
                 zipInput.value = prodData.download_url;
-                
+
                 tagsInput.value = prodData.tags || '';
                 versionInput.value = prodData.version || '1.0.0';
                 discountInput.value = prodData.discount_price || '';
@@ -4066,7 +4089,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 if (extendedPriceInput) {
                     extendedPriceInput.value = prodData.extended_price || '';
                 }
-                
+
                 let shots = [];
                 try {
                     shots = JSON.parse(prodData.preview_images) || [];
@@ -4082,7 +4105,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                         });
                     }
                 });
-                
+
                 setThumbMode('url');
                 updateThumbPreview(prodData.thumbnail);
             } else {
@@ -4092,7 +4115,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 priceInput.value = '';
                 demoInput.value = '';
                 descInput.value = '';
-                
+
                 tagsInput.value = '';
                 versionInput.value = '1.0.0';
                 discountInput.value = '';
@@ -4114,11 +4137,11 @@ if ($page === 'product' && isset($_GET['id'])) {
                 }
                 thumbnailInput.value = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600";
                 zipInput.value = "https://example.com/source_code.zip";
-                
+
                 setThumbMode('url');
                 updateThumbPreview("https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600");
             }
-            
+
             toggleLicensingFields();
             renderScreenshotsGrid();
             document.getElementById('product-studio-modal').classList.remove('hidden');
