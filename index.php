@@ -526,6 +526,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         exit;
     }
 
+
+    // Admin Impersonation
+    if ($action === 'impersonate_user') {
+        if (!is_admin() && !isset($_SESSION['admin_impersonating'])) {
+            $_SESSION['flash_error'] = 'Unauthorized.';
+            header('Location: index.php');
+            die();
+        }
+
+        $target_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+
+        // Return to admin
+        if ($target_id === 0 && isset($_SESSION['admin_impersonating'])) {
+            $admin_id = $_SESSION['admin_impersonating'];
+            $stmt = $db->prepare('SELECT * FROM users WHERE id = ?');
+            $stmt->execute([$admin_id]);
+            $admin = $stmt->fetch();
+
+            if ($admin) {
+                $_SESSION['user_id'] = $admin['id'];
+                $_SESSION['user_email'] = $admin['email'];
+                $_SESSION['user_name'] = $admin['name'];
+                $_SESSION['user_role'] = $admin['role'];
+                unset($_SESSION['admin_impersonating']);
+                $_SESSION['flash_success'] = 'Returned to admin account.';
+            }
+            header('Location: index.php?page=dashboard&tab=admin_users');
+            die();
+        }
+
+        if ($target_id > 0) {
+            $stmt = $db->prepare('SELECT * FROM users WHERE id = ?');
+            $stmt->execute([$target_id]);
+            $target_user = $stmt->fetch();
+
+            if ($target_user) {
+                if (!isset($_SESSION['admin_impersonating'])) {
+                    $_SESSION['admin_impersonating'] = $_SESSION['user_id'];
+                }
+                $_SESSION['user_id'] = $target_user['id'];
+                $_SESSION['user_email'] = $target_user['email'];
+                $_SESSION['user_name'] = $target_user['name'];
+                $_SESSION['user_role'] = $target_user['role'];
+                $_SESSION['flash_success'] = 'Impersonating ' . htmlspecialchars($target_user['name']);
+            } else {
+                $_SESSION['flash_error'] = 'User not found.';
+            }
+            header('Location: index.php?page=dashboard');
+            die();
+        }
+    }
+
+
     // Auth: Logout
     if ($action === 'logout') {
         unset($_SESSION['user_id']);
@@ -2296,6 +2349,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
         $role = isset($_POST['role']) ? trim($_POST['role']) : '';
         $ban_action = isset($_POST['ban_action']) ? trim($_POST['ban_action']) : '';
 
+        // Full Edit logic
+        $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+        $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+        $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+        $is_verified = isset($_POST['is_verified']) ? intval($_POST['is_verified']) : 0;
+
         if ($id > 0) {
             if ($ban_action === 'ban') {
                 $db->prepare("UPDATE users SET role = 'banned' WHERE id = ?")->execute([$id]);
@@ -2303,6 +2362,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             } else if ($ban_action === 'unban') {
                 $db->prepare("UPDATE users SET role = 'buyer' WHERE id = ?")->execute([$id]);
                 $_SESSION['flash_success'] = "User account has been reinstated.";
+            } else if (!empty($email) && !empty($name)) {
+                if (!empty($password)) {
+                    $hashed = password_hash($password, PASSWORD_BCRYPT);
+                    $db->prepare("UPDATE users SET email = ?, name = ?, role = ?, is_verified = ?, password = ? WHERE id = ?")->execute([$email, $name, $role, $is_verified, $hashed, $id]);
+                } else {
+                    $db->prepare("UPDATE users SET email = ?, name = ?, role = ?, is_verified = ? WHERE id = ?")->execute([$email, $name, $role, $is_verified, $id]);
+                }
+                $_SESSION['flash_success'] = "User details updated successfully.";
             } else if (!empty($role)) {
                 $db->prepare("UPDATE users SET role = ? WHERE id = ?")->execute([$role, $id]);
                 $_SESSION['flash_success'] = "User role modified successfully.";
@@ -2852,6 +2919,12 @@ if ($page === 'product' && isset($_GET['id'])) {
                                         <?php endif; ?>
                                         <a href="<?php echo url('affiliate'); ?>" class="block px-4 py-2.5 text-xs text-slate-700 hover:bg-gray-50 hover:text-slate-900 transition-colors">Affiliate Link</a>
                                         <hr class="border-gray-100">
+                                        <?php if (isset($_SESSION['admin_impersonating'])): ?>
+                                            <form method="POST" action="index.php?action=impersonate_user" class="block w-full text-left">
+                                                <input type="hidden" name="user_id" value="0">
+                                                <button type="submit" class="w-full text-left px-4 py-2.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 transition-colors">Return to Admin</button>
+                                            </form>
+                                        <?php endif; ?>
                                         <a href="index.php?action=logout" class="block px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 transition-colors">Logout</a>
                                     </div>
                                 </div>
@@ -2888,9 +2961,9 @@ if ($page === 'product' && isset($_GET['id'])) {
                 <!-- CTA buttons -->
                 <div class="hidden sm:flex items-center gap-3">
                     <?php if (is_seller()): ?>
-                        <button onclick="openProductModal()" class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-bold flex items-center gap-1 shadow-sm">
+                        <a href="index.php?page=dashboard&tab=product_editor" class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-bold flex items-center gap-1 shadow-sm">
                             <span>📤</span> Upload Work
-                        </button>
+                        </a>
                     <?php else: ?>
                         <a href="index.php?page=dashboard&tab=verification" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/40 rounded text-xs font-bold flex items-center gap-1">
                             Start Selling
@@ -3255,209 +3328,6 @@ if ($page === 'product' && isset($_GET['id'])) {
 
     </div>
 
-    <!-- Stateful Product Management Modal (Add and Edit) -->
-    <div id="product-studio-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden select-none">
-        <div class="bg-white rounded-lg w-full max-w-2xl p-8 border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeProductModal()" class="absolute right-6 top-6 text-slate-400 hover:text-slate-900 font-bold text-lg outline-none">✕</button>
-
-            <h3 id="product-modal-title" class="font-black text-xl text-slate-900 mb-2">Publish Code script</h3>
-            <p class="text-xs text-slate-500 mb-6">Listed products are peer-vetted automatically. Earn split royalties instantly through verified Paystack settlement triggers.</p>
-
-            <form method="POST" action="index.php?action=product_save" class="space-y-4">
-                <input type="hidden" name="id" id="prod-input-id" value="0">
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Title</label>
-                        <input type="text" name="title" id="prod-input-title" required placeholder="e.g. SaaS Boilerplate..." class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regular Price</label>
-                        <input type="number" step="0.01" name="price" id="prod-input-price" required placeholder="49.99" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxonomy category</label>
-                        <select name="category" id="prod-input-category" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
-                            <?php
-                            $cat_opts_stmt = $db->query("SELECT * FROM categories ORDER BY name ASC");
-                            $cat_options = $cat_opts_stmt->fetchAll();
-                            foreach ($cat_options as $cat_opt):
-                            ?>
-                                <option value="<?php echo htmlspecialchars($cat_opt['name']); ?>"><?php echo htmlspecialchars($cat_opt['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Interactive Video / demo URL</label>
-                        <input type="url" name="live_demo_url" id="prod-input-demo" placeholder="https://demo.example.com" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                </div>
-
-                <div class="space-y-2 border-t pt-4">
-                    <div class="flex items-center justify-between">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Thumbnail Image</label>
-                        <div class="inline-flex rounded shadow-sm" role="group">
-                            <button type="button" onclick="setThumbMode('url')" id="btn-thumb-mode-url" class="px-2.5 py-1 text-[10px] font-bold text-white bg-[#5cb85c] rounded-l border border-[#5cb85c] outline-none">URL Input</button>
-                            <button type="button" onclick="setThumbMode('file')" id="btn-thumb-mode-file" class="px-2.5 py-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-r border border-gray-300 outline-none">Local Upload</button>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 items-center">
-                        <div class="w-16 h-16 rounded border bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 shadow-inner" id="thumb-preview-box">
-                            <img id="prod-thumb-preview-img" src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600" class="w-full h-full object-cover" alt="Thumbnail Preview" referrerpolicy="no-referrer">
-                        </div>
-
-                        <div class="flex-1">
-                            <div id="thumb-input-pane-url" class="block">
-                                <input type="url" name="thumbnail" id="prod-input-thumbnail" required value="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600" oninput="updateThumbPreview(this.value)" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-                            </div>
-
-                            <div id="thumb-input-pane-file" class="hidden">
-                                <div id="thumb-dropzone" class="border-2 border-dashed border-slate-350 rounded p-4 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-slate-50/50">
-                                    <span class="text-xs text-slate-500 font-bold" id="thumb-upload-text">📁 Click or Drop Thumbnail File</span>
-                                    <input type="file" id="thumb-file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                                    <div id="thumb-upload-progress" class="w-full bg-slate-200 h-1 rounded overflow-hidden mt-1.5 hidden">
-                                        <div id="thumb-upload-progress-bar" class="bg-[#5cb85c] h-full" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Licensed Deliverable Zip URL</label>
-                        <input type="url" name="download_url" id="prod-input-zip" required value="https://example.com/source_code.zip" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags (comma-separated)</label>
-                        <input type="text" name="tags" id="prod-input-tags" placeholder="php, template, tailwind" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Release Version</label>
-                        <input type="text" name="version" id="prod-input-version" placeholder="1.0.0" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-                    </div>
-                </div>
-
-                <!-- Product Licensing Settings -->
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-800">Require Script License key</h4>
-                            <p class="text-[9px] text-slate-455 leading-normal">Generate license keys automatically on purchase using an external License Manager API.</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                name="licensing_enabled"
-                                id="prod-input-licensing-enabled"
-                                value="1"
-                                class="sr-only peer"
-                                onchange="toggleLicensingFields()"
-                            >
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer:checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5cb85c]"></div>
-                        </label>
-                    </div>
-                    <div id="licensing-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden">
-                        <div class="space-y-1 sm:col-span-2">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Extended License Price (Optional)</label>
-                            <input type="number" step="0.01" name="extended_price" id="prod-input-extended-price" placeholder="Leave empty if not offering extended license" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c] shadow-sm">
-                        </div>
-                        <div class="sm:col-span-2 text-[10px] text-slate-500 bg-white border p-3 rounded leading-relaxed">
-                            💡 <strong>Integration Note:</strong> To validate this license within your script, use the central validation snippet provided by the platform. Check the documentation for the <code>license-verifier.php</code> integration.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 border-t pt-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Discount/Sale Price (Optional)</label>
-                        <input type="number" step="0.01" name="discount_price" id="prod-input-discount" placeholder="Leave empty if no sale" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-orange-400 shadow-sm">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Sale Ends At (Optional)</label>
-                        <input type="datetime-local" name="sale_ends_at" id="prod-input-sale-ends" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-orange-400 shadow-sm">
-                    </div>
-                </div>
-
-                <?php if (is_admin()): ?>
-                    <div class="space-y-1 border-t pt-4">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approval Status</label>
-                        <select name="status" id="prod-input-status" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
-                            <option value="approved">Approved (Live)</option>
-                            <option value="pending">Pending Review</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Screenshots input lists -->
-                <div class="space-y-3 p-4 border rounded bg-slate-50/50">
-                    <div class="flex items-center justify-between">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gallery Screenshots (Max 10)</label>
-                        <span class="text-[10px] font-bold text-slate-400 font-mono" id="screenshot-counter">0 / 10</span>
-                    </div>
-
-                    <!-- Drag & Drop Zone -->
-                    <div id="screenshots-dropzone" class="border-2 border-dashed border-slate-350 rounded-lg p-5 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-white">
-                        <span class="text-xl mb-1">🖼️</span>
-                        <span class="text-xs text-slate-600 font-bold" id="shots-upload-text">Drag & Drop Screenshots here, or click to browse</span>
-                        <span class="text-[9px] text-slate-400 mt-0.5">Supports PNG, JPG, WEBP, GIF (Automatically optimized)</span>
-                        <input type="file" id="screenshots-file-input" accept="image/*" multiple class="absolute inset-0 opacity-0 cursor-pointer">
-                    </div>
-
-                    <!-- Manual input block -->
-                    <div class="flex gap-2">
-                        <input type="url" id="screenshot-manual-url" placeholder="https://example.com/screenshot.jpg" class="flex-1 px-3 py-2 rounded border bg-white outline-none text-xs focus:border-[#5cb85c]">
-                        <button type="button" onclick="addManualScreenshotUrl()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded text-xs transition-colors shrink-0 outline-none">Add URL</button>
-                    </div>
-
-                    <!-- Previews grid -->
-                    <div id="screenshots-preview-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 select-none">
-                        <!-- Previews injected here -->
-                    </div>
-
-                    <!-- Hidden inputs container -->
-                    <div id="screenshots-hidden-inputs"></div>
-                </div>
-
-                <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Detailed README Documentation</label>
-                    <textarea name="description" id="prod-input-desc" required rows="4" placeholder="Detail installation requirements, setup guides, and library dependencies..." class="w-full px-4 py-3 rounded border outline-none bg-white text-xs leading-relaxed focus:border-[#5cb85c] shadow-sm"></textarea>
-                </div>
-
-                <!-- Featured checkbox toggle -->
-                <div class="p-4 bg-slate-50 border border-slate-100 rounded flex items-center justify-between">
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-800">Feature this product</h4>
-                        <p class="text-[9px] text-slate-450 leading-normal max-w-xs">Checking this will tag the script as Featured and trigger price/announcement notifications for wishlisters.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            name="is_featured"
-                            id="prod-input-featured"
-                            value="1"
-                            class="sr-only peer"
-                        >
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer:checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5cb85c]"></div>
-                    </label>
-                </div>
-
-                <button type="button" id="publish-asset-btn" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
-                    Publish System Asset
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- REALTIME SCRIPT INTERFACES -->
     <script>
         // Modal toggling states
@@ -3467,9 +3337,9 @@ if ($page === 'product' && isset($_GET['id'])) {
 
         document.addEventListener('keydown', function(event) {
             if (event.key === "Escape") {
-                closeLoginModal();
-                closeLightboxModal();
-                closeProductModal();
+                if (typeof closeLoginModal === 'function') closeLoginModal();
+                if (typeof closeLightboxModal === 'function') closeLightboxModal();
+                if (typeof closeUserEditModal === 'function') closeUserEditModal();
             }
         });
 
@@ -4034,122 +3904,7 @@ if ($page === 'product' && isset($_GET['id'])) {
             renderScreenshotsGrid();
         }
 
-        // Product Manager Modal state
-        function openProductModal(prodData) {
-            const titleEl = document.getElementById('product-modal-title');
-            const idInput = document.getElementById('prod-input-id');
-            const titleInput = document.getElementById('prod-input-title');
-            const priceInput = document.getElementById('prod-input-price');
-            const categoryInput = document.getElementById('prod-input-category');
-            const demoInput = document.getElementById('prod-input-demo');
-            const descInput = document.getElementById('prod-input-desc');
-            const thumbnailInput = document.getElementById('prod-input-thumbnail');
-            const zipInput = document.getElementById('prod-input-zip');
-            const featuredInput = document.getElementById('prod-input-featured');
 
-            const tagsInput = document.getElementById('prod-input-tags');
-            const versionInput = document.getElementById('prod-input-version');
-            const discountInput = document.getElementById('prod-input-discount');
-            const saleEndsInput = document.getElementById('prod-input-sale-ends');
-            const statusInput = document.getElementById('prod-input-status');
-
-            const licensingEnabledInput = document.getElementById('prod-input-licensing-enabled');
-
-
-            uploadedScreenshots = [];
-
-            if (prodData) {
-                titleEl.innerText = "Edit Code script";
-                idInput.value = prodData.id;
-                titleInput.value = prodData.title;
-                priceInput.value = prodData.price;
-                categoryInput.value = prodData.category;
-                demoInput.value = prodData.live_demo_url || '';
-                descInput.value = prodData.description;
-                thumbnailInput.value = prodData.thumbnail;
-                zipInput.value = prodData.download_url;
-
-                tagsInput.value = prodData.tags || '';
-                versionInput.value = prodData.version || '1.0.0';
-                discountInput.value = prodData.discount_price || '';
-                saleEndsInput.value = prodData.sale_ends_at ? prodData.sale_ends_at.substring(0, 16) : '';
-                if (statusInput) {
-                    statusInput.value = prodData.status || 'pending';
-                }
-
-                if (featuredInput) {
-                    featuredInput.checked = (prodData.is_featured == 1);
-                }
-
-                if (licensingEnabledInput) {
-                    licensingEnabledInput.checked = (prodData.licensing_enabled == 1);
-                }
-
-                const extendedPriceInput = document.getElementById('prod-input-extended-price');
-                if (extendedPriceInput) {
-                    extendedPriceInput.value = prodData.extended_price || '';
-                }
-
-                let shots = [];
-                try {
-                    shots = JSON.parse(prodData.preview_images) || [];
-                } catch(e) {}
-                shots.forEach(s => {
-                    if (s) {
-                        uploadedScreenshots.push({
-                            url: s,
-                            originalUrl: s,
-                            isUploading: false,
-                            progress: 100,
-                            name: 'screenshot-saved'
-                        });
-                    }
-                });
-
-                setThumbMode('url');
-                updateThumbPreview(prodData.thumbnail);
-            } else {
-                titleEl.innerText = "Publish Code script";
-                idInput.value = '0';
-                titleInput.value = '';
-                priceInput.value = '';
-                demoInput.value = '';
-                descInput.value = '';
-
-                tagsInput.value = '';
-                versionInput.value = '1.0.0';
-                discountInput.value = '';
-                saleEndsInput.value = '';
-                if (statusInput) {
-                    statusInput.value = 'approved';
-                }
-
-                if (featuredInput) {
-                    featuredInput.checked = false;
-                }
-                if (licensingEnabledInput) {
-                    licensingEnabledInput.checked = false;
-                }
-
-                const extendedPriceInput = document.getElementById('prod-input-extended-price');
-                if (extendedPriceInput) {
-                    extendedPriceInput.value = '';
-                }
-                thumbnailInput.value = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600";
-                zipInput.value = "https://example.com/source_code.zip";
-
-                setThumbMode('url');
-                updateThumbPreview("https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600");
-            }
-
-            toggleLicensingFields();
-            renderScreenshotsGrid();
-            document.getElementById('product-studio-modal').classList.remove('hidden');
-        }
-
-        function closeProductModal() {
-            document.getElementById('product-studio-modal').classList.add('hidden');
-        }
 
         function toggleLicensingFields() {
             const chk = document.getElementById('prod-input-licensing-enabled');

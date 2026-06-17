@@ -445,9 +445,9 @@ if (!$wallet) {
                         <h3 class="font-black text-xl text-slate-900 tracking-tight leading-none mb-1">Products Studio</h3>
                         <p class="text-xs text-slate-500">Upload, edit, or delete your listed assets. Add tags, versions, and discount rates to optimize your sales.</p>
                     </div>
-                    <button onclick="<?php echo get_setting('demo_mode', '0') === '1' ? "alert('Platform is in read-only Demo Mode. Additions are disabled.')" : "openProductModal()"; ?>" class="px-4 py-2 bg-[#5cb85c] hover:bg-[#4cae4c] text-white font-bold rounded text-xs shadow <?php echo get_setting('demo_mode', '0') === '1' ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                    <a href="<?php echo get_setting('demo_mode', '0') === '1' ? "javascript:alert('Platform is in read-only Demo Mode. Additions are disabled.')" : "index.php?page=dashboard&tab=product_editor"; ?>" class="px-4 py-2 bg-[#5cb85c] hover:bg-[#4cae4c] text-white font-bold rounded text-xs shadow <?php echo get_setting('demo_mode', '0') === '1' ? 'opacity-50 cursor-not-allowed' : ''; ?> inline-block">
                         + List New Product
-                    </button>
+                    </a>
                 </div>
 
                 <?php if (empty($my_products)): ?>
@@ -492,7 +492,7 @@ if (!$wallet) {
                                         </td>
                                         <td class="p-3 flex gap-2 justify-center">
                                             <a href="index.php?page=product&id=<?php echo $mp['id']; ?>" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 border text-slate-700 font-bold rounded">View</a>
-                                            <button onclick="openProductModal(<?php echo htmlspecialchars(json_encode($mp)); ?>)" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-150 font-bold rounded">Edit</button>
+                                            <a href="index.php?page=dashboard&tab=product_editor&id=<?php echo $mp['id']; ?>" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-150 font-bold rounded">Edit</a>
                                             <form method="POST" action="index.php?action=product_delete" onsubmit="return confirm('Prune this marketplace script permanently?');" class="inline">
                                                 <input type="hidden" name="id" value="<?php echo $mp['id']; ?>">
                                                 <button type="submit" class="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 border border-red-150 font-bold rounded">Delete</button>
@@ -505,6 +505,10 @@ if (!$wallet) {
                     </div>
                 <?php endif; ?>
             </div>
+
+        <?php elseif ($active_tab === 'product_editor' && ($user_role === 'seller' || $user_role === 'admin')): ?>
+            <!-- ---------------- Tab: PRODUCT EDITOR ---------------- -->
+            <?php include __DIR__ . '/product_editor.php'; ?>
 
         <?php elseif ($active_tab === 'withdrawals' && $user_role === 'seller'): ?>
             <!-- ---------------- Tab: SELLER WITHDRAWALS / SETTLEMENTS ---------------- -->
@@ -726,6 +730,15 @@ if (!$wallet) {
                                                 <input type="hidden" name="ban_action" value="ban">
                                                 <button type="submit" class="px-2 py-1 text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 rounded">Suspend</button>
                                             <?php endif; ?>
+                                        </form>
+
+                                        <!-- Edit Modal trigger (will implement later) -->
+                                        <button onclick="openUserEditModal(<?php echo htmlspecialchars(json_encode($u)); ?>)" class="px-2 py-1 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded">Edit</button>
+
+                                        <!-- Impersonate User -->
+                                        <form method="POST" action="index.php?action=impersonate_user">
+                                            <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded">Log in As</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -2532,4 +2545,61 @@ if (!$wallet) {
             }
         });
     }
+</script>
+
+<!-- Admin User Edit Modal -->
+<div id="admin-user-edit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden select-none animate-fade">
+    <div class="bg-white rounded w-full max-w-md p-6 border shadow-2xl relative">
+        <button onclick="closeUserEditModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-800 font-bold text-lg outline-none">✕</button>
+        <h3 class="font-black text-xl text-slate-900 mb-4">Edit User Account</h3>
+        <form method="POST" action="index.php?action=admin_user_manage" class="space-y-4">
+            <input type="hidden" name="id" id="edit-user-id" value="">
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</label>
+                <input type="text" name="name" id="edit-user-name" required class="w-full px-4 py-2 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c]">
+            </div>
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
+                <input type="email" name="email" id="edit-user-email" required class="w-full px-4 py-2 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c]">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</label>
+                    <select name="role" id="edit-user-role" class="w-full px-4 py-2 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c]">
+                        <option value="buyer">Buyer</option>
+                        <option value="seller">Seller</option>
+                        <option value="admin">Admin</option>
+                        <option value="banned">Banned</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified?</label>
+                    <select name="is_verified" id="edit-user-verified" class="w-full px-4 py-2 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c]">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Password (Leave blank to keep)</label>
+                <input type="text" name="password" placeholder="••••••••" class="w-full px-4 py-2 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c]">
+            </div>
+            <button type="submit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded text-xs shadow transition-colors">Update User Data</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUserEditModal(user) {
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('edit-user-name').value = user.name;
+    document.getElementById('edit-user-email').value = user.email;
+    document.getElementById('edit-user-role').value = user.role;
+    document.getElementById('edit-user-verified').value = user.is_verified;
+    document.getElementById('admin-user-edit-modal').classList.remove('hidden');
+}
+
+function closeUserEditModal() {
+    document.getElementById('admin-user-edit-modal').classList.add('hidden');
+}
 </script>
