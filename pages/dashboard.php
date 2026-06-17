@@ -748,8 +748,7 @@ if (!$wallet) {
                 </div>
             </div>
 
-        <?php elseif ($active_tab === 'admin_products' && $user_role === 'admin'): ?>
-            <!-- ---------------- Tab: ADMIN CATALOG MANAGEMENT ---------------- -->
+       <?php elseif ($active_tab === 'admin_products' && $user_role === 'admin'): ?>
             <?php
             $admin_filter = isset($_GET['status_filter']) ? trim($_GET['status_filter']) : 'all';
             $p_q = "SELECT p.*, u.name as seller_name FROM products p JOIN users u ON p.seller_id = u.id";
@@ -777,76 +776,74 @@ if (!$wallet) {
                     </div>
                 </div>
 
-                <form method="POST" action="index.php?action=bulk_product_approve">
-                    <div class="flex justify-between items-center bg-slate-50 p-3.5 border rounded mb-4">
-                        <div class="flex items-center gap-2 text-xs font-bold text-slate-650">
-                            <input type="checkbox" id="select-all-catalog-checkbox" class="rounded w-4 h-4 cursor-pointer" onclick="toggleSelectAllProducts(this)">
-                            <span>Select All Catalog Items for Bulk Action</span>
-                        </div>
-                        <div class="flex gap-1.5 text-xs font-bold">
-                            <button type="submit" name="status" value="approved" class="px-3 py-1.5 bg-[#5cb85c] hover:bg-[#4cae4c] text-white rounded">Bulk Approve</button>
-                            <button type="submit" name="status" value="rejected" class="px-3 py-1.5 bg-red-500 hover:bg-red-650 text-white rounded">Bulk Decline</button>
-                        </div>
-                    </div>
+                <form method="POST" action="index.php?action=bulk_product_approve" id="bulk-approve-form"></form>
 
-                    <div class="overflow-x-auto border border-gray-150 rounded">
-                        <table class="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 border-b font-bold text-slate-500 select-none">
-                                    <th class="p-3 w-8">Select</th>
-                                    <th class="p-3">Product Title</th>
-                                    <th class="p-3">Developer</th>
-                                    <th class="p-3">Price</th>
-                                    <th class="p-3">Status</th>
-                                    <th class="p-3 text-center">Approve / Decline Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y text-slate-650">
-                                <?php foreach($all_prods as $ap): ?>
-                                    <tr class="hover:bg-slate-50 <?php echo $ap['status'] === 'pending' ? 'bg-amber-50/15' : ''; ?>">
-                                        <td class="p-3 text-center">
-                                            <input type="checkbox" name="product_ids[]" value="<?php echo $ap['id']; ?>" class="catalog-chk-child rounded w-3.5 h-3.5 cursor-pointer">
-                                        </td>
-                                        <td class="p-3 font-bold text-slate-900">
-                                            <a href="index.php?page=product&id=<?php echo $ap['id']; ?>" class="hover:underline" target="_blank"><?php echo htmlspecialchars($ap['title']); ?></a>
-                                        </td>
-                                        <td class="p-3 font-semibold text-slate-500">by <?php echo htmlspecialchars($ap['seller_name']); ?></td>
-                                        <td class="p-3 font-bold font-mono text-slate-800"><?php echo format_price($ap['price']); ?></td>
-                                        <td class="p-3">
-                                            <?php if ($ap['status'] === 'approved'): ?>
-                                                <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold border border-emerald-100 text-[10px]">Approved</span>
-                                            <?php elseif ($ap['status'] === 'pending'): ?>
-                                                <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-600 font-bold border border-amber-100 text-[10px]">Pending Audit</span>
-                                            <?php else: ?>
-                                                <span class="px-2 py-0.5 rounded bg-red-50 text-red-600 font-bold border border-red-100 text-[10px]">Rejected</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="p-3 flex justify-center items-center gap-1.5">
-                                            <?php if ($ap['status'] === 'pending'): ?>
-                                                <button type="button" onclick="triggerReviewRejectionModal(<?php echo $ap['id']; ?>, '<?php echo htmlspecialchars(addslashes($ap['title'])); ?>')" class="px-2 py-1 bg-red-50 text-red-500 border border-red-100 text-[10px] font-bold rounded">Decline</button>
-                                                
-                                                <form method="POST" action="index.php?action=product_approve" class="inline">
-                                                    <input type="hidden" name="id" value="<?php echo $ap['id']; ?>">
-                                                    <input type="hidden" name="status" value="approved">
-                                                    <button type="submit" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 text-[10px] font-bold rounded">Approve</button>
-                                                </form>
-                                            <?php endif; ?>
-                                            
-                                            <!-- Standard Pruning delete -->
-                                            <form method="POST" action="index.php?action=product_delete" onsubmit="return confirm('Remove product permanently?');" class="inline">
-                                                <input type="hidden" name="id" value="<?php echo $ap['id']; ?>">
-                                                <button type="submit" class="px-2 py-1 bg-slate-100 border hover:bg-slate-200 text-slate-500 text-[10px] font-bold rounded">Prune</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <div class="flex justify-between items-center bg-slate-50 p-3.5 border rounded mb-4">
+                    <div class="flex items-center gap-2 text-xs font-bold text-slate-650">
+                        <input type="checkbox" id="select-all-catalog-checkbox" class="rounded w-4 h-4 cursor-pointer" onclick="toggleSelectAllProducts(this)">
+                        <span>Select All Catalog Items for Bulk Action</span>
                     </div>
-                </form>
+                    <div class="flex gap-1.5 text-xs font-bold">
+                        <button type="submit" name="status" value="approved" form="bulk-approve-form" class="px-3 py-1.5 bg-[#5cb85c] hover:bg-[#4cae4c] text-white rounded">Bulk Approve</button>
+                        <button type="submit" name="status" value="rejected" form="bulk-approve-form" class="px-3 py-1.5 bg-red-500 hover:bg-red-650 text-white rounded">Bulk Decline</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-gray-150 rounded">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b font-bold text-slate-500 select-none">
+                                <th class="p-3 w-8">Select</th>
+                                <th class="p-3">Product Title</th>
+                                <th class="p-3">Developer</th>
+                                <th class="p-3">Price</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-center">Approve / Decline Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y text-slate-650">
+                            <?php foreach($all_prods as $ap): ?>
+                                <tr class="hover:bg-slate-50 <?php echo $ap['status'] === 'pending' ? 'bg-amber-50/15' : ''; ?>">
+                                    <td class="p-3 text-center">
+                                        <input type="checkbox" name="product_ids[]" value="<?php echo $ap['id']; ?>" form="bulk-approve-form" class="catalog-chk-child rounded w-3.5 h-3.5 cursor-pointer">
+                                    </td>
+                                    <td class="p-3 font-bold text-slate-900">
+                                        <a href="index.php?page=product&id=<?php echo $ap['id']; ?>" class="hover:underline" target="_blank"><?php echo htmlspecialchars($ap['title']); ?></a>
+                                    </td>
+                                    <td class="p-3 font-semibold text-slate-500">by <?php echo htmlspecialchars($ap['seller_name']); ?></td>
+                                    <td class="p-3 font-bold font-mono text-slate-800"><?php echo format_price($ap['price']); ?></td>
+                                    <td class="p-3">
+                                        <?php if ($ap['status'] === 'approved'): ?>
+                                            <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold border border-emerald-100 text-[10px]">Approved</span>
+                                        <?php elseif ($ap['status'] === 'pending'): ?>
+                                            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-600 font-bold border border-amber-100 text-[10px]">Pending Audit</span>
+                                        <?php else: ?>
+                                            <span class="px-2 py-0.5 rounded bg-red-50 text-red-600 font-bold border border-red-100 text-[10px]">Rejected</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-3 flex justify-center items-center gap-1.5">
+                                        <?php if ($ap['status'] === 'pending'): ?>
+                                            <button type="button" onclick="triggerReviewRejectionModal(<?php echo $ap['id']; ?>, '<?php echo htmlspecialchars(addslashes($ap['title'])); ?>')" class="px-2 py-1 bg-red-50 text-red-500 border border-red-100 text-[10px] font-bold rounded">Decline</button>
+                                            
+                                            <form method="POST" action="index.php?action=product_approve" class="inline">
+                                                <input type="hidden" name="id" value="<?php echo $ap['id']; ?>">
+                                                <input type="hidden" name="status" value="approved">
+                                                <button type="submit" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 text-[10px] font-bold rounded">Approve</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        
+                                        <form method="POST" action="index.php?action=product_delete" onsubmit="return confirm('Remove product permanently?');" class="inline">
+                                            <input type="hidden" name="id" value="<?php echo $ap['id']; ?>">
+                                            <button type="submit" class="px-2 py-1 bg-slate-100 border hover:bg-slate-200 text-slate-500 text-[10px] font-bold rounded">Prune</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Decline Feedback Modal -->
             <div id="decline-feedback-modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden select-none animate-fade">
                 <div class="bg-white rounded p-6 max-w-sm w-full border shadow-2xl relative">
                     <button onclick="closeReviewRejectionModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-800 font-bold text-sm">✕</button>

@@ -2194,7 +2194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
             $stmt->execute([$status, $id]);
 
             if ($status === 'approved') {
-                send_product_email_ads($db, $id);
+                // FIXED: Wrapped in try...catch to prevent 550 SMTP errors from crashing the page
+                try {
+                    send_product_email_ads($db, $id);
+                } catch (Exception $e) {
+                    error_log("Ad email broadcast failed, but approval continued: " . $e->getMessage());
+                }
             }
 
             // Fetch seller_id & title
@@ -2250,7 +2255,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || !empty($action)) {
                     $stmt->execute([$status, $pid]);
 
                     if ($status === 'approved') {
-                        send_product_email_ads($db, $pid);
+                        // FIXED: Wrapped in try...catch to prevent SMTP failure loops
+                        try {
+                            send_product_email_ads($db, $pid);
+                        } catch (Exception $e) {
+                            error_log("Bulk Ad email broadcast failed for product $pid: " . $e->getMessage());
+                        }
                     }
 
                     // Notify seller
@@ -3329,7 +3339,7 @@ if ($page === 'product' && isset($_GET['id'])) {
     </div>
 
     <!-- REALTIME SCRIPT INTERFACES -->
-    <script>
+   <script>
         // Modal toggling states
         function openLoginModal() {
             document.getElementById('login-auth-portal-modal').classList.remove('hidden');
@@ -3365,7 +3375,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                 tabs_header.classList.remove('hidden');
                 login_form.classList.remove('hidden');
                 login_btn.className = "border-b-2 border-[#5cb85c] text-[#5cb85c] outline-none pb-1";
-                register_btn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-800 outline-none pb-1";
+                register_btn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-850 outline-none pb-1";
             } else if (tab === 'register') {
                 tabs_header.classList.remove('hidden');
                 register_form.classList.remove('hidden');
@@ -3533,22 +3543,26 @@ if ($page === 'product' && isset($_GET['id'])) {
         // Dynamic Screenshots state
         let uploadedScreenshots = [];
 
+        // FIXED: Stripping the 'required' attribute dynamically when pane is hidden.
         function setThumbMode(mode) {
             const paneUrl = document.getElementById('thumb-input-pane-url');
             const paneFile = document.getElementById('thumb-input-pane-file');
             const btnUrl = document.getElementById('btn-thumb-mode-url');
             const btnFile = document.getElementById('btn-thumb-mode-file');
+            const thumbInput = document.getElementById('prod-input-thumbnail');
 
             if (mode === 'url') {
                 if (paneUrl) paneUrl.classList.remove('hidden');
                 if (paneFile) paneFile.classList.add('hidden');
                 if (btnUrl) btnUrl.className = "px-2.5 py-1 text-[10px] font-bold text-white bg-[#5cb85c] rounded-l border border-[#5cb85c] outline-none";
                 if (btnFile) btnFile.className = "px-2.5 py-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-r border border-gray-300 outline-none";
+                if (thumbInput) thumbInput.setAttribute('required', 'required');
             } else {
                 if (paneUrl) paneUrl.classList.add('hidden');
                 if (paneFile) paneFile.classList.remove('hidden');
                 if (btnUrl) btnUrl.className = "px-2.5 py-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-l border border-gray-300 outline-none";
                 if (btnFile) btnFile.className = "px-2.5 py-1 text-[10px] font-bold text-white bg-[#5cb85c] rounded-r border border-[#5cb85c] outline-none";
+                if (thumbInput) thumbInput.removeAttribute('required');
             }
         }
 
@@ -3788,6 +3802,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     })(fileIndex, file, localUrl);
                 }
             }
+            
             // Listen to product title changes to dynamically update screenshots alt text
             const titleInput = document.getElementById('prod-input-title');
             if (titleInput) {
@@ -3796,29 +3811,24 @@ if ($page === 'product' && isset($_GET['id'])) {
                 });
             }
 
+            // NOTE: Removed the old faulty publishBtn click listener from here.
+        });
+
+        // FIXED: Replaced brittle click handler with a unified native form submit processor
+        function handleProductSubmit(e) {
+            const stillUploading = uploadedScreenshots.some(s => s.isUploading);
+            if (stillUploading) {
+                alert('Please wait - screenshots are still uploading.');
+                e.preventDefault();
+                return false;
+            }
             const publishBtn = document.getElementById('publish-asset-btn');
             if (publishBtn) {
-                publishBtn.addEventListener('click', function() {
-                    const form = this.closest('form');
-                    if (!form) return;
-
-                    const stillUploading = uploadedScreenshots.some(s => s.isUploading);
-                    if (stillUploading) {
-                        alert('Please wait - screenshots are still uploading.');
-                        return;
-                    }
-
-                    if (!form.checkValidity()) {
-                        form.reportValidity();
-                        return;
-                    }
-
-                    this.disabled = true;
-                    this.innerHTML = 'Publishing...';
-                    form.submit();
-                });
+                publishBtn.disabled = true;
+                publishBtn.innerHTML = 'Publishing...';
             }
-        });
+            return true;
+        }
 
         function renderScreenshotsGrid() {
             const grid = document.getElementById('screenshots-preview-grid');
@@ -3904,8 +3914,6 @@ if ($page === 'product' && isset($_GET['id'])) {
             renderScreenshotsGrid();
         }
 
-
-
         function toggleLicensingFields() {
             const chk = document.getElementById('prod-input-licensing-enabled');
             const container = document.getElementById('licensing-fields-container');
@@ -3917,8 +3925,6 @@ if ($page === 'product' && isset($_GET['id'])) {
                 }
             }
         }
-
-
     </script>
 
     <!-- Footer Custom Injected Code -->

@@ -1,7 +1,8 @@
 <?php
-// Product Editor Form (extracted from modal)
+// High-Performance Product Editor Form
 $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $prodData = null;
+
 if ($product_id > 0) {
     $stmt = $db->prepare("SELECT * FROM products WHERE id = ? AND (seller_id = ? OR ? = 1)");
     $stmt->execute([$product_id, $_SESSION['user_id'], is_admin() ? 1 : 0]);
@@ -13,8 +14,8 @@ $price = $prodData ? $prodData['price'] : '';
 $category = $prodData ? htmlspecialchars($prodData['category']) : '';
 $demo_url = $prodData ? htmlspecialchars($prodData['live_demo_url']) : '';
 $description = $prodData ? htmlspecialchars($prodData['description']) : '';
-$thumbnail = $prodData ? htmlspecialchars($prodData['thumbnail']) : 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600';
-$download_url = $prodData ? htmlspecialchars($prodData['download_url']) : 'https://example.com/source_code.zip';
+$thumbnail = $prodData ? htmlspecialchars($prodData['thumbnail']) : '';
+$download_url = $prodData ? htmlspecialchars($prodData['download_url']) : '';
 $tags = $prodData ? htmlspecialchars($prodData['tags']) : '';
 $version = $prodData ? htmlspecialchars($prodData['version']) : '1.0.0';
 $discount_price = $prodData ? $prodData['discount_price'] : '';
@@ -26,223 +27,366 @@ $extended_price = $prodData ? $prodData['extended_price'] : '';
 $preview_images = $prodData ? $prodData['preview_images'] : '[]';
 ?>
 
-<div class="bg-white rounded-lg w-full max-w-2xl mx-auto p-8 border shadow-sm relative">
-    <h3 id="product-modal-title" class="font-black text-xl text-slate-900 mb-2"><?php echo $product_id ? 'Edit Code script' : 'Publish Code script'; ?></h3>
-    <p class="text-xs text-slate-500 mb-6">Listed products are peer-vetted automatically. Earn split royalties instantly through verified Paystack settlement triggers.</p>
+<div class="bg-white rounded-xl w-full max-w-3xl mx-auto p-8 border border-slate-200 shadow-lg relative">
+    <div class="mb-8 border-b pb-4">
+        <h3 id="product-modal-title" class="font-black text-2xl text-slate-900 tracking-tight">
+            <?php echo $product_id ? 'Update System Asset' : 'Publish New Asset'; ?>
+        </h3>
+        <p class="text-sm text-slate-500 mt-1">Upload images directly from your device. Images are auto-optimized to WebP for lightning-fast submission.</p>
+    </div>
 
-    <form method="POST" action="index.php?action=product_save" class="space-y-4" id="product-editor-form">
+    <form method="POST" action="index.php?action=product_save" class="space-y-6" id="product-editor-form" onsubmit="return handleSmartSubmit(event)">
         <input type="hidden" name="id" id="prod-input-id" value="<?php echo $product_id; ?>">
+        
+        <input type="hidden" name="thumbnail" id="hidden-thumbnail-url" value="<?php echo $thumbnail; ?>">
+        <div id="hidden-screenshots-container"></div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Title</label>
-                <input type="text" name="title" id="prod-input-title" required value="<?php echo $title; ?>" placeholder="e.g. SaaS Boilerplate..." class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
+        <div class="bg-slate-50 p-6 rounded-lg border border-slate-100 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Product Title *</label>
+                    <input type="text" id="prod-input-title" name="title" required value="<?php echo $title; ?>" placeholder="e.g. PHP Fintech Script" class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-white text-sm focus:ring-2 focus:ring-[#5cb85c] shadow-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Regular Price (₦) *</label>
+                    <input type="number" step="0.01" name="price" required value="<?php echo $price; ?>" placeholder="50000" class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-white text-sm font-mono focus:ring-2 focus:ring-[#5cb85c] shadow-sm">
+                </div>
             </div>
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regular Price</label>
-                <input type="number" step="0.01" name="price" id="prod-input-price" required value="<?php echo $price; ?>" placeholder="49.99" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c] shadow-sm">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Category *</label>
+                    <select name="category" required class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-white text-sm focus:ring-2 focus:ring-[#5cb85c] shadow-sm">
+                        <option value="">Select a Category...</option>
+                        <?php
+                        $cats = $db->query("SELECT name FROM categories ORDER BY name ASC")->fetchAll();
+                        foreach ($cats as $c) {
+                            $sel = ($category === $c['name']) ? 'selected' : '';
+                            echo '<option value="' . htmlspecialchars($c['name']) . '" ' . $sel . '>' . htmlspecialchars($c['name']) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Live Demo URL</label>
+                    <input type="url" name="live_demo_url" value="<?php echo $demo_url; ?>" placeholder="https://demo.yoursite.com" class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-white text-sm focus:ring-2 focus:ring-[#5cb85c] shadow-sm">
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
-                <select name="category" id="prod-input-category" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
-                    <?php
-                    $cats = $db->query("SELECT name FROM categories ORDER BY name ASC")->fetchAll();
-                    foreach ($cats as $c) {
-                        $sel = ($category === $c['name']) ? 'selected' : '';
-                        echo '<option value="' . htmlspecialchars($c['name']) . '" ' . $sel . '>' . htmlspecialchars($c['name']) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Demo URL (Optional)</label>
-                <input type="url" name="live_demo_url" id="prod-input-demo" value="<?php echo $demo_url; ?>" placeholder="https://demo.example.com" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-            </div>
-        </div>
-
-        <!-- Thumbnail Manager -->
-        <div class="space-y-2 p-4 border rounded bg-slate-50/50">
-            <div class="flex items-center justify-between">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Master Thumbnail</label>
-                <div class="flex rounded text-[10px] overflow-hidden">
-                    <button type="button" onclick="setThumbMode('url')" id="btn-thumb-mode-url" class="px-2.5 py-1 font-bold text-white bg-[#5cb85c] rounded-l border border-[#5cb85c] outline-none">URL</button>
-                    <button type="button" onclick="setThumbMode('file')" id="btn-thumb-mode-file" class="px-2.5 py-1 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-r border border-gray-300 outline-none">Upload</button>
-                </div>
-            </div>
-            <div class="flex gap-4 items-start">
-                <div class="w-24 h-24 rounded border shrink-0 overflow-hidden bg-slate-100">
-                    <img id="prod-thumb-preview-img" src="<?php echo $thumbnail; ?>" class="w-full h-full object-cover">
-                </div>
-                <div class="flex-1 space-y-2">
-                    <div id="thumb-input-pane-url" class="">
-                        <input type="url" name="thumbnail" id="prod-input-thumbnail" required value="<?php echo $thumbnail; ?>" placeholder="https://..." onchange="updateThumbPreview(this.value)" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
+        <div class="bg-slate-50 p-6 rounded-lg border border-slate-100 space-y-6">
+            
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-700 uppercase">Master Thumbnail *</label>
+                <div class="flex items-center gap-4">
+                    <div class="w-24 h-24 rounded border overflow-hidden bg-white shrink-0 relative shadow-sm border-gray-300">
+                        <img id="thumb-preview-img" src="<?php echo $thumbnail ?: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600'; ?>" class="w-full h-full object-cover">
                     </div>
-                    <div id="thumb-input-pane-file" class="hidden">
-                        <div id="thumb-dropzone" class="border-2 border-dashed border-slate-350 rounded p-4 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-white h-[42px]">
-                            <span class="text-xs text-slate-600 font-bold" id="thumb-upload-text">📁 Click or Drop Thumbnail File</span>
-                            <input type="file" id="thumb-file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
-                        </div>
-                        <div id="thumb-upload-progress" class="w-full bg-slate-200 h-1.5 rounded-full mt-2 hidden overflow-hidden">
-                            <div id="thumb-upload-progress-bar" class="bg-[#5cb85c] h-full" style="width: 0%"></div>
-                        </div>
+                    <div class="flex-1">
+                        <input type="file" id="local-thumb-input" accept="image/*" class="hidden" onchange="handleThumbnailSelect(this)">
+                        <button type="button" onclick="document.getElementById('local-thumb-input').click()" class="px-4 py-2 bg-white border border-gray-300 hover:border-[#5cb85c] text-slate-700 text-xs font-bold rounded shadow-sm transition-colors outline-none">
+                            Browse Local Image
+                        </button>
+                        <p class="text-[10px] text-slate-400 mt-2">Auto-converted to WebP (Max 1280px).</p>
                     </div>
-                    <p class="text-[9px] text-slate-400">High-resolution cover image. 16:9 ratio recommended.</p>
                 </div>
             </div>
-        </div>
 
-        <div class="space-y-1">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secured Source Code Download URL</label>
-            <input type="url" name="download_url" id="prod-input-zip" required value="<?php echo $download_url; ?>" placeholder="https://example.com/source.zip" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c] shadow-sm">
-        </div>
+            <hr class="border-gray-200">
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Tags (CSV)</label>
-                <input type="text" name="tags" id="prod-input-tags" value="<?php echo $tags; ?>" placeholder="php, template, tailwind" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-            </div>
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Release Version</label>
-                <input type="text" name="version" id="prod-input-version" value="<?php echo $version; ?>" placeholder="1.0.0" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-[#5cb85c] shadow-sm">
-            </div>
-        </div>
-
-        <!-- Product Licensing Settings -->
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded space-y-3">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h4 class="text-xs font-bold text-slate-800">Require Script License key</h4>
-                    <p class="text-[9px] text-slate-455 leading-normal">Generate license keys automatically on purchase using an external License Manager API.</p>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-700 uppercase">Gallery Screenshots (Max 10)</label>
+                    <span class="text-[10px] font-bold text-slate-400 font-mono" id="gallery-counter">0 / 10</span>
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        name="licensing_enabled"
-                        id="prod-input-licensing-enabled"
-                        value="1"
-                        <?php echo $licensing_enabled ? 'checked' : ''; ?>
-                        class="sr-only peer"
-                        onchange="toggleLicensingFields()"
-                    >
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer:checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5cb85c]"></div>
-                </label>
-            </div>
-            <div id="licensing-fields-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 <?php echo $licensing_enabled ? '' : 'hidden'; ?>">
-                <div class="space-y-1 sm:col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Extended License Price (Optional)</label>
-                    <input type="number" step="0.01" name="extended_price" id="prod-input-extended-price" value="<?php echo $extended_price; ?>" placeholder="Leave empty if not offering extended license" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-mono focus:border-[#5cb85c] shadow-sm">
+                
+                <input type="file" id="local-gallery-input" accept="image/*" multiple class="hidden" onchange="handleGallerySelect(this)">
+                <div onclick="document.getElementById('local-gallery-input').click()" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-[#5cb85c] hover:bg-[#5cb85c]/5 transition-all bg-white">
+                    <span class="text-2xl mb-2 block">📸</span>
+                    <span class="text-xs font-bold text-slate-600">Click to Select Screenshots from your Device</span>
+                    <p class="text-[9px] text-slate-400 mt-1">Images are kept local until you hit publish.</p>
                 </div>
-                <div class="sm:col-span-2 text-[10px] text-slate-500 bg-white border p-3 rounded leading-relaxed">
-                    💡 <strong>Integration Note:</strong> To validate this license within your script, use the central validation snippet provided by the platform. Check the documentation for the <code>license-verifier.php</code> integration.
+
+                <div id="gallery-preview-grid" class="grid grid-cols-3 md:grid-cols-5 gap-3 pt-4 select-none">
+                    </div>
+            </div>
+            
+            <hr class="border-gray-200">
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-700 uppercase">Source Code Download URL *</label>
+                <input type="url" name="download_url" required value="<?php echo $download_url; ?>" placeholder="https://..." class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-white text-sm font-mono focus:ring-2 focus:ring-[#5cb85c] shadow-sm">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 border rounded-lg bg-white">
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-700 uppercase">System Tags</label>
+                <input type="text" name="tags" value="<?php echo $tags; ?>" placeholder="vtu, fintech, portal" class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-slate-50 text-sm focus:ring-2 focus:ring-[#5cb85c] transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-700 uppercase">Version</label>
+                <input type="text" name="version" value="<?php echo $version; ?>" placeholder="1.0.0" class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-slate-50 text-sm focus:ring-2 focus:ring-[#5cb85c] transition-all">
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-700 uppercase">Detailed Description & Requirements *</label>
+            <textarea name="description" required rows="6" placeholder="Provide server requirements, installation guide, and features..." class="w-full px-4 py-3 rounded-md border-gray-300 outline-none bg-slate-50 text-sm leading-relaxed focus:ring-2 focus:ring-[#5cb85c] transition-all shadow-sm"><?php echo $description; ?></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200">
+            <div id="upload-progress-container" class="hidden mb-4 p-4 bg-emerald-50 border border-[#5cb85c] rounded-lg">
+                <div class="flex justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span id="upload-status-text">Uploading to server...</span>
+                </div>
+                <div class="w-full bg-white h-2 rounded-full overflow-hidden border border-gray-200">
+                    <div id="upload-progress-bar" class="bg-[#5cb85c] h-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
+
+            <button type="submit" id="smart-publish-btn" class="w-full py-4 bg-[#5cb85c] hover:bg-[#4cae4c] text-white font-black text-sm uppercase tracking-widest rounded-lg shadow-md transition-all">
+                Publish Asset to Marketplace
+            </button>
         </div>
-
-        <div class="grid grid-cols-2 gap-4 border-t pt-4">
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Discount/Sale Price (Optional)</label>
-                <input type="number" step="0.01" name="discount_price" id="prod-input-discount" value="<?php echo $discount_price; ?>" placeholder="Leave empty if no sale" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-orange-400 shadow-sm">
-            </div>
-            <div class="space-y-1">
-                <label class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Sale Ends At (Optional)</label>
-                <input type="datetime-local" name="sale_ends_at" id="prod-input-sale-ends" value="<?php echo $sale_ends_at; ?>" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs focus:border-orange-400 shadow-sm">
-            </div>
-        </div>
-
-        <?php if (is_admin()): ?>
-            <div class="space-y-1 border-t pt-4">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approval Status</label>
-                <select name="status" id="prod-input-status" class="w-full px-4 py-3 rounded border outline-none bg-white text-xs font-bold focus:border-[#5cb85c] shadow-sm">
-                    <option value="approved" <?php echo $status === 'approved' ? 'selected' : ''; ?>>Approved (Live)</option>
-                    <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending Review</option>
-                    <option value="rejected" <?php echo $status === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                </select>
-            </div>
-        <?php endif; ?>
-
-        <!-- Screenshots input lists -->
-        <div class="space-y-3 p-4 border rounded bg-slate-50/50">
-            <div class="flex items-center justify-between">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gallery Screenshots (Max 10)</label>
-                <span class="text-[10px] font-bold text-slate-400 font-mono" id="screenshot-counter">0 / 10</span>
-            </div>
-
-            <!-- Drag & Drop Zone -->
-            <div id="screenshots-dropzone" class="border-2 border-dashed border-slate-350 rounded-lg p-5 text-center cursor-pointer hover:border-[#5cb85c] transition-colors relative flex flex-col items-center justify-center bg-white">
-                <span class="text-xl mb-1">🖼️</span>
-                <span class="text-xs text-slate-600 font-bold" id="shots-upload-text">Drag & Drop Screenshots here, or click to browse</span>
-                <span class="text-[9px] text-slate-400 mt-0.5">Supports PNG, JPG, WEBP, GIF (Automatically optimized)</span>
-                <input type="file" id="screenshots-file-input" accept="image/*" multiple class="absolute inset-0 opacity-0 cursor-pointer">
-            </div>
-
-            <!-- Manual input block -->
-            <div class="flex gap-2">
-                <input type="url" id="screenshot-manual-url" placeholder="https://example.com/screenshot.jpg" class="flex-1 px-3 py-2 rounded border bg-white outline-none text-xs focus:border-[#5cb85c]">
-                <button type="button" onclick="addManualScreenshotUrl()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded text-xs transition-colors shrink-0 outline-none">Add URL</button>
-            </div>
-
-            <!-- Previews grid -->
-            <div id="screenshots-preview-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 select-none">
-                <!-- Previews injected here -->
-            </div>
-
-            <!-- Hidden inputs container -->
-            <div id="screenshots-hidden-inputs"></div>
-        </div>
-
-        <div class="space-y-1">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Detailed README Documentation</label>
-            <textarea name="description" id="prod-input-desc" required rows="4" placeholder="Detail installation requirements, setup guides, and library dependencies..." class="w-full px-4 py-3 rounded border outline-none bg-white text-xs leading-relaxed focus:border-[#5cb85c] shadow-sm"><?php echo $description; ?></textarea>
-        </div>
-
-        <!-- Featured checkbox toggle -->
-        <div class="p-4 bg-slate-50 border border-slate-100 rounded flex items-center justify-between">
-            <div>
-                <h4 class="text-xs font-bold text-slate-800">Feature this product</h4>
-                <p class="text-[9px] text-slate-450 leading-normal max-w-xs">Checking this will tag the script as Featured and trigger price/announcement notifications for wishlisters.</p>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input
-                    type="checkbox"
-                    name="is_featured"
-                    id="prod-input-featured"
-                    value="1"
-                    <?php echo $is_featured ? 'checked' : ''; ?>
-                    class="sr-only peer"
-                >
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer:checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5cb85c]"></div>
-            </label>
-        </div>
-
-        <button type="button" id="publish-asset-btn" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold uppercase rounded text-xs shadow transition-all">
-            Publish System Asset
-        </button>
     </form>
 </div>
 
 <script>
-    // Initialize initial screenshots if editing
+    // State Management
+    let localThumbBlob = null; 
+    let localGalleryItems = []; // Array of objects: { id, blob, url }
+    
+    // Load existing gallery data if editing
     window.addEventListener('DOMContentLoaded', () => {
         let initialShots = [];
-        try {
-            initialShots = JSON.parse('<?php echo addslashes($preview_images); ?>') || [];
-        } catch(e) {}
-        initialShots.forEach(s => {
-            if (s) {
-                uploadedScreenshots.push({
-                    url: s,
-                    originalUrl: s,
-                    isUploading: false,
-                    progress: 100,
-                    name: 'screenshot-saved'
-                });
+        try { initialShots = JSON.parse('<?php echo addslashes($preview_images); ?>') || []; } catch(e) {}
+        
+        initialShots.forEach(url => {
+            if (url) {
+                localGalleryItems.push({ id: Date.now() + Math.random(), blob: null, url: url });
             }
         });
-        if(typeof renderScreenshotsGrid === 'function') {
-            renderScreenshotsGrid();
-        }
+        renderGalleryGrid();
     });
+
+    // 1. Image to WebP Converter Engine (Keeps high quality, massively reduces size)
+    function convertToWebP(file, quality = 0.85) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.naturalWidth;
+                    let height = img.naturalHeight;
+                    const MAX_DIMENSION = 1280; // Standardize massive images down
+
+                    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                        if (width > height) {
+                            height = Math.round(height * (MAX_DIMENSION / width));
+                            width = MAX_DIMENSION;
+                        } else {
+                            width = Math.round(width * (MAX_DIMENSION / height));
+                            height = MAX_DIMENSION;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob((webpBlob) => {
+                        const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                        resolve({ blob: webpBlob, name: baseName + '.webp' });
+                    }, 'image/webp', quality);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // 2. Handle Thumbnail Selection
+    function handleThumbnailSelect(input) {
+        const file = input.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+
+        const btn = document.getElementById('smart-publish-btn');
+        btn.innerHTML = "Optimizing Thumbnail...";
+        btn.disabled = true;
+
+        convertToWebP(file).then(({ blob, name }) => {
+            localThumbBlob = { blob: blob, name: name };
+            document.getElementById('thumb-preview-img').src = URL.createObjectURL(blob);
+            
+            btn.innerHTML = "Publish Asset to Marketplace";
+            btn.disabled = false;
+        });
+        input.value = ''; // Reset input
+    }
+
+    // 3. Handle Gallery Selection
+    function handleGallerySelect(input) {
+        const files = input.files;
+        if (!files.length) return;
+
+        const remainingSlots = 10 - localGalleryItems.length;
+        if (remainingSlots <= 0) {
+            alert('Maximum limit of 10 screenshots reached.');
+            return;
+        }
+
+        const filesToProcess = Array.from(files).slice(0, remainingSlots);
+        const btn = document.getElementById('smart-publish-btn');
+        btn.innerHTML = "Optimizing Screenshots...";
+        btn.disabled = true;
+
+        let processed = 0;
+        filesToProcess.forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                processed++; return;
+            }
+            
+            convertToWebP(file).then(({ blob, name }) => {
+                localGalleryItems.push({
+                    id: Date.now() + Math.random(),
+                    blob: blob,
+                    name: name,
+                    url: URL.createObjectURL(blob)
+                });
+                
+                processed++;
+                if (processed === filesToProcess.length) {
+                    renderGalleryGrid();
+                    btn.innerHTML = "Publish Asset to Marketplace";
+                    btn.disabled = false;
+                }
+            });
+        });
+        input.value = ''; // Reset
+    }
+
+    function removeGalleryItem(id) {
+        localGalleryItems = localGalleryItems.filter(item => item.id !== id);
+        renderGalleryGrid();
+    }
+
+    function renderGalleryGrid() {
+        const grid = document.getElementById('gallery-preview-grid');
+        const counter = document.getElementById('gallery-counter');
+        grid.innerHTML = '';
+        counter.innerText = localGalleryItems.length + " / 10";
+
+        localGalleryItems.forEach((item) => {
+            const div = document.createElement('div');
+            div.className = "relative aspect-video rounded border overflow-hidden bg-slate-100 group shadow-sm";
+            div.innerHTML = `
+                <img src="${item.url}" class="w-full h-full object-cover">
+                <button type="button" onclick="removeGalleryItem(${item.id})" class="absolute top-1 right-1 w-5 h-5 rounded bg-red-500 text-white flex items-center justify-center text-xs opacity-80 hover:opacity-100 outline-none">✕</button>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    // 4. AJAX Upload Wrapper (Matches your existing backend logic)
+    function uploadImageToBackend(blob, fileName, type) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', blob, fileName);
+            formData.append('type', type);
+            
+            const titleInput = document.getElementById('prod-input-title');
+            if(titleInput) formData.append('title', titleInput.value);
+
+            fetch('index.php?action=image_upload_ajax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') resolve(data.url);
+                else reject(data.message || 'Upload failed');
+            })
+            .catch(err => reject('Server communication error'));
+        });
+    }
+
+    // 5. The Magic Submission Handler (Uploads right before saving)
+    async function handleSmartSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        
+        // Ensure standard fields are filled
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return false;
+        }
+
+        // Ensure thumbnail exists
+        const hiddenThumb = document.getElementById('hidden-thumbnail-url').value;
+        if (!localThumbBlob && !hiddenThumb) {
+            alert('A Master Thumbnail image is required.');
+            return false;
+        }
+
+        // Lock UI
+        const btn = document.getElementById('smart-publish-btn');
+        const progContainer = document.getElementById('upload-progress-container');
+        const progBar = document.getElementById('upload-progress-bar');
+        const statusText = document.getElementById('upload-status-text');
+        
+        btn.disabled = true;
+        btn.innerHTML = 'Connecting to Server...';
+        progContainer.classList.remove('hidden');
+
+        try {
+            let itemsToUpload = [];
+            if (localThumbBlob) itemsToUpload.push({ item: localThumbBlob, type: 'thumbnail' });
+            
+            localGalleryItems.forEach(g => {
+                if (g.blob) itemsToUpload.push({ item: g, type: 'screenshot' });
+            });
+
+            // Process Uploads Sequentially
+            for (let i = 0; i < itemsToUpload.length; i++) {
+                let pData = itemsToUpload[i];
+                statusText.innerText = `Uploading Image ${i + 1} of ${itemsToUpload.length}...`;
+                progBar.style.width = Math.round((i / itemsToUpload.length) * 100) + '%';
+                
+                const remoteUrl = await uploadImageToBackend(pData.item.blob, pData.item.name || 'image.webp', pData.type);
+                
+                if (pData.type === 'thumbnail') {
+                    document.getElementById('hidden-thumbnail-url').value = remoteUrl;
+                } else {
+                    pData.item.url = remoteUrl; // Swap local objectURL with remote server URL
+                }
+            }
+
+            // Finalize Form Inputs
+            statusText.innerText = `Finalizing Asset Details...`;
+            progBar.style.width = '100%';
+            btn.innerHTML = 'Saving to Database...';
+
+            // Inject final Gallery URLs into hidden inputs
+            const hiddenContainer = document.getElementById('hidden-screenshots-container');
+            hiddenContainer.innerHTML = '';
+            localGalleryItems.forEach(g => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'screenshots[]';
+                inp.value = g.url; // This is now the live server URL
+                hiddenContainer.appendChild(inp);
+            });
+
+            // Submit native form to save!
+            form.submit();
+
+        } catch (error) {
+            alert("Submission halted: " + error);
+            btn.disabled = false;
+            btn.innerHTML = 'Publish Asset to Marketplace';
+            progContainer.classList.add('hidden');
+        }
+    }
 </script>
