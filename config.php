@@ -1,11 +1,8 @@
 <?php
 // CodeVault Generated Database Configuration File
 
-define('DB_TYPE', 'mysql');
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'codevault_store');
-define('DB_USER', 'codevault_store');
-define('DB_PASS', 'codevault_store');
+define('DB_TYPE', 'sqlite');
+define('DB_SQLITE_PATH', __DIR__ . '/marketplace.db');
 
 // Base settings
 define('PLATFORM_NAME', 'CodeVault');

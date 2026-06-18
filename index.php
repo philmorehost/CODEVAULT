@@ -2808,8 +2808,8 @@ if ($page === 'product' && isset($_GET['id'])) {
 
     <!-- Global Promo Banner -->
     <?php
-    $stmtPromo = $db->prepare("SELECT id, title, discount_price, sale_ends_at FROM products WHERE status = 'approved' AND discount_price IS NOT NULL AND sale_ends_at IS NOT NULL AND sale_ends_at > datetime('now') ORDER BY sale_ends_at ASC LIMIT 1");
-    $stmtPromo->execute();
+    $stmtPromo = $db->prepare("SELECT id, title, discount_price, sale_ends_at FROM products WHERE status = 'approved' AND discount_price IS NOT NULL AND sale_ends_at IS NOT NULL AND sale_ends_at > ? ORDER BY sale_ends_at ASC LIMIT 1");
+    $stmtPromo->execute([date('Y-m-d H:i:s')]);
     $activePromo = $stmtPromo->fetch();
 
     if ($activePromo):
