@@ -2805,6 +2805,77 @@ if ($page === 'product' && isset($_GET['id'])) {
     </style>
 </head>
 <body class="bg-[#f5f5f5] text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Global Promo Banner -->
+    <?php
+    $stmtPromo = $db->prepare("SELECT id, title, discount_price, sale_ends_at FROM products WHERE status = 'approved' AND discount_price IS NOT NULL AND sale_ends_at IS NOT NULL AND sale_ends_at > ? ORDER BY sale_ends_at ASC LIMIT 1");
+    $stmtPromo->execute([date('Y-m-d H:i:s')]);
+    $activePromo = $stmtPromo->fetch();
+
+    if ($activePromo):
+        $endDate = $activePromo['sale_ends_at'];
+    ?>
+    <div id="global-promo-banner" class="bg-gradient-to-r from-orange-600 to-red-600 text-white py-2 px-4 text-center text-sm font-semibold shadow-md flex flex-col md:flex-row items-center justify-center gap-3 relative z-50">
+        <div class="flex items-center gap-2">
+            <span class="text-xl">🔥</span>
+            <span>Flash Sale Active! Get <strong class="uppercase"><?= htmlspecialchars($activePromo['title']) ?></strong> at a discounted price!</span>
+        </div>
+        <div class="flex items-center gap-3 bg-black/20 px-3 py-1 rounded-full">
+            <span class="text-xs uppercase tracking-wider text-orange-200">Ends In:</span>
+            <div id="promo-countdown" class="font-mono font-bold tracking-widest text-base drop-shadow-sm" data-ends-at="<?= htmlspecialchars($endDate) ?>">--:--:--</div>
+        </div>
+        <a href="index.php?page=flash_sale" class="ml-2 bg-white text-red-600 hover:bg-orange-50 px-3 py-1 rounded shadow-sm transition-colors text-xs font-bold uppercase tracking-wider">
+            Shop Now
+        </a>
+        <button onclick="document.getElementById('global-promo-banner').style.display='none'" class="absolute right-4 text-white/70 hover:text-white transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const countdownEl = document.getElementById('promo-countdown');
+        if (!countdownEl) return;
+
+        // ensure correct date parsing across browsers by standardizing format
+        let endDateStr = countdownEl.getAttribute('data-ends-at');
+        // If sqlite output is "YYYY-MM-DD HH:MM:SS", replace space with 'T' for iOS/Safari compatibility
+        endDateStr = endDateStr.replace(' ', 'T');
+
+        // Optional: append 'Z' if your DB stores UTC, but we'll assume local/server time for now.
+        // Doing the math relative to the client's current time.
+        const targetDate = new Date(endDateStr).getTime();
+
+        const updateCountdown = () => {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                countdownEl.innerHTML = "EXPIRED";
+                document.getElementById('global-promo-banner').classList.add('hidden');
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            let timeStr = "";
+            if (days > 0) timeStr += days + "d ";
+            timeStr += String(hours).padStart(2, '0') + ":" +
+                       String(minutes).padStart(2, '0') + ":" +
+                       String(seconds).padStart(2, '0');
+
+            countdownEl.innerHTML = timeStr;
+        };
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    });
+    </script>
+    <?php endif; ?>
+
     <!-- Google Tag Manager (noscript) -->
     <?php if ($gtm_id = get_setting('analytics_gtm_id')): ?>
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo htmlspecialchars($gtm_id); ?>"
@@ -3802,7 +3873,7 @@ if ($page === 'product' && isset($_GET['id'])) {
                     })(fileIndex, file, localUrl);
                 }
             }
-            
+
             // Listen to product title changes to dynamically update screenshots alt text
             const titleInput = document.getElementById('prod-input-title');
             if (titleInput) {
